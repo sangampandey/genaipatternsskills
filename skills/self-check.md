@@ -1,26 +1,40 @@
+---
+name: self-check
+description: >-
+  Implement the Self-Check pattern (Safety & Guardrails). Detect potential hallucinations by analyzing token probabilities and confidence scores in LLM outputs before they reach the user. Use when working with: hallucination, logprobs, confidence, perplexity.
+---
+
 # Self-Check
 
-> Category: Safety & Guardrails | Difficulty: advanced | Pattern: genaipatterns.dev/patterns/safety/self-check
+> Category: Safety & Guardrails | Difficulty: advanced | Reference: https://www.genaipatterns.dev/patterns/safety/self-check
 
 ## What This Pattern Solves
 
 **Self-Check is** a pattern where the LLM evaluates its own output for correctness, safety, or policy compliance before returning it. The model generates an answer, then a second pass critiques that answer against specific criteria, and the system either accepts, revises, or rejects the response.
 
+## When to Use This Skill
+
+Self-check is most valuable when your application generates factual claims that users might act on. If the model is writing creative fiction or brainstorming ideas, hallucination is a feature, not a bug. If the model is producing legal summaries, medical recommendations, or financial reports, you need confidence scoring.
+
+This pattern also makes sense when you cannot verify outputs against a ground-truth database in real time. If you have a database to check against, do that instead. Self-check is for situations where the facts are too diverse, too nuanced, or too numerous for simple lookup validation.
+
+It is worth implementing when you have the engineering capacity to handle flagged outputs gracefully. Self-check tells you something might be wrong. You still need a plan for what happens next. That might mean routing to a human reviewer, falling back to a retrieval-based answer, or simply telling the user that the system is not confident in this particular response.
+
 ## Architecture Rules
 
-- The self-check pattern exploits the fact that language models do expose their internal confidence, even if they do not express it in their text output. Most model APIs can return log probabilities (logprobs) for each generated token. These numbers tell you how likely the model considered each token before selecting it. A high probability means the model was fairly certain. A low probability means it was choosing among many plausible alternatives, which is exactly the situation where hallucinations tend to occur.
-- The simplest approach is to monitor logprobs on the tokens that matter most. In a structured output where the model produces key-value pairs, you often care about the values more than the keys. If the model generates "capital: Nairobi" with high confidence on "Nairobi" but generates "population: 4,397,073" with low confidence on the numeric tokens, that second fact deserves scrutiny. You can set a threshold and flag any claim where the relevant tokens fall below it.
-- A more robust method is to generate the same response multiple times (using a non-zero temperature) and compare the outputs. If the model produces consistent answers across five generations, it is likely drawing on well-represented training data. If each generation gives a different answer, the model is guessing. This consistency check does not require access to logprobs at all, which makes it work with APIs that do not expose them.
-- You can also compute perplexity over a generated sequence as a normalized confidence metric. Perplexity aggregates token-level probabilities into a single number that represents how "surprised" the model was by its own output. Lower perplexity means higher confidence. Sequences with unusually high perplexity relative to your application's baseline are candidates for human review or rejection.
-- For production systems, some teams train a lightweight classifier on top of token probability features. You collect examples of verified correct outputs and known hallucinations, extract their probability profiles, and train a small model to distinguish between them. This gives you a fast, automated hallucination detector tuned to your specific domain.
+- Self-check is most valuable when your application generates factual claims that users might act on
+- pattern also makes sense when you cannot verify outputs against a ground-truth database in real time
+- It is worth implementing when you have the engineering capacity to handle flagged outputs gracefully
 
 ## Implementation Steps
 
-1. The self-check pattern exploits the fact that language models do expose their internal confidence, even if they do not express it in their text output. Most model APIs can return log probabilities (logprobs) for each generated token. These numbers tell you how likely the model considered each token before selecting it. A high probability means the model was fairly certain. A low probability means it was choosing among many plausible alternatives, which is exactly the situation where hallucinations tend to occur.
-2. The simplest approach is to monitor logprobs on the tokens that matter most. In a structured output where the model produces key-value pairs, you often care about the values more than the keys. If the model generates "capital: Nairobi" with high confidence on "Nairobi" but generates "population: 4,397,073" with low confidence on the numeric tokens, that second fact deserves scrutiny. You can set a threshold and flag any claim where the relevant tokens fall below it.
-3. A more robust method is to generate the same response multiple times (using a non-zero temperature) and compare the outputs. If the model produces consistent answers across five generations, it is likely drawing on well-represented training data. If each generation gives a different answer, the model is guessing. This consistency check does not require access to logprobs at all, which makes it work with APIs that do not expose them.
-4. You can also compute perplexity over a generated sequence as a normalized confidence metric. Perplexity aggregates token-level probabilities into a single number that represents how "surprised" the model was by its own output. Lower perplexity means higher confidence. Sequences with unusually high perplexity relative to your application's baseline are candidates for human review or rejection.
-5. For production systems, some teams train a lightweight classifier on top of token probability features. You collect examples of verified correct outputs and known hallucinations, extract their probability profiles, and train a small model to distinguish between them. This gives you a fast, automated hallucination detector tuned to your specific domain.
+1. The self-check pattern exploits the fact that language models do expose their internal confidence, even if they do not express it in their text output. Most model APIs can return log probabilities (logprobs) for each generated token.
+2. The simplest approach is to monitor logprobs on the tokens that matter most. In a structured output where the model produces key-value pairs, you often care about the values more than the keys.
+3. A more robust method is to generate the same response multiple times (using a non-zero temperature) and compare the outputs. If the model produces consistent answers across five generations, it is likely drawing on well-represented training data.
+4. You can also compute perplexity over a generated sequence as a normalized confidence metric. Perplexity aggregates token-level probabilities into a single number that represents how "surprised" the model was by its own output.
+5. For production systems, some teams train a lightweight classifier on top of token probability features. You collect examples of verified correct outputs and known hallucinations, extract their probability profiles, and train a small model to distinguish between them.
+6. Adapt the code template below to your specific requirements
+7. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -73,10 +87,12 @@ print(f"Passed: {result['passed']}")
 
 ## Verification Checklist
 
-- [ ] Verified: Logprob thresholds are not universal. A probability that indicates high confidence on one topic might indicate low confidence on another. Rare but correct tokens (unusual proper nouns, technical terminology) will naturally have lower probabilities even when the model is right. You need domain-specific calibration, and that takes labeled data.
-- [ ] Verified: No multi-generation consistency check is expensive. Generating five responses instead of one multiplies your inference cost by five and your latency by roughly the same factor unless you can run generations in parallel. For high-throughput applications, this cost may be prohibitive for every request. A common compromise is to run consistency checks only on outputs that the logprob analysis flags as uncertain.
-- [ ] Verified: Self-check can create a false sense of security. High confidence does not guarantee correctness. Models can be confidently wrong, especially on topics that are well-represented in training data but where the training data itself contains errors. Self-check catches uncertainty. It does not catch confident mistakes.
-- [ ] Verified: There is also the risk of over-filtering. If your thresholds are too aggressive, you will flag correct outputs as potentially hallucinated, undermining user trust and reducing the utility of the system. Calibrating thresholds requires ongoing monitoring with real production data.
+- [ ] Monitoring and logging are configured for production debugging
+- [ ] Latency impact is measured and within acceptable bounds
+- [ ] Security checks are in place against prompt injection and adversarial inputs
+- [ ] Verified: There is also the risk of over-filtering.
+- [ ] Implementation follows the Self-Check architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

@@ -1,22 +1,38 @@
+---
+name: guardrails
+description: >-
+  Implement the Guardrails pattern (Safety & Guardrails). Insert safety layers at input, output, retrieval, and execution points to enforce content policies, prevent harm, and block prompt injection. Use when working with: safety, input-filtering, output-filtering, moderation.
+---
+
 # Guardrails
 
-> Category: Safety & Guardrails | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/safety/guardrails
+> Category: Safety & Guardrails | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/safety/guardrails
 
 ## What This Pattern Solves
 
 **Guardrails is** a pattern that wraps LLM inputs and outputs with validation rules to enforce safety, format, and policy constraints. Input guardrails filter harmful or off-topic prompts before they reach the model. Output guardrails check generated text for policy violations, hallucinations, or format errors before returning it to the user.
 
+## When to Use This Skill
+
+Use guardrails when your application is user-facing and you cannot tolerate arbitrary model outputs. This is especially important when the application handles sensitive data like personal information, financial records, or health data. If you are building an internal tool for a small trusted team, lightweight guardrails may suffice. If you are building a consumer product, you need all four layers.
+
+Guardrails are also the right choice when you need auditable safety. Regulated industries often require you to demonstrate that specific controls are in place. A guardrail architecture gives you clear checkpoints where you can log decisions, flag violations, and prove compliance.
+
+If your application allows the model to execute actions (calling APIs, writing to databases, sending emails), execution guardrails are non-negotiable. A model that can take real-world actions without validation is a security incident waiting to happen.
+
 ## Architecture Rules
 
-- Guardrails are dedicated processing layers that sit between the components of your LLM pipeline. Think of them as middleware for AI applications. They intercept data at specific points, evaluate it against your policies, and either pass it through, modify it, or reject it entirely.
-- There are four natural insertion points. Input guardrails sit between the user and the model. They screen incoming prompts for injection attempts, toxic content, or out-of-scope requests before the model ever sees them. Output guardrails sit between the model's response and the user. They catch hallucinated claims, inappropriate content, or leaked sensitive data before it reaches the end user. Retrieval guardrails sit between your knowledge base and the model. When you are doing retrieval-augmented generation, these layers filter or redact retrieved documents to prevent sensitive information from entering the context window. Execution guardrails sit between the model and any tools or APIs it can call. They validate that proposed function calls are within allowed parameters and do not perform destructive operations.
-- Each guardrail layer can perform three actions. It can pass the data through unchanged, modify the data (for example, redacting PII or rewriting a response), or reject the request entirely with an appropriate error message. The key insight is that these layers operate independently of the model. They can use simple rules, regex patterns, classification models, or even a second LLM call to make their decisions.
+- guardrails when your application is user-facing and you cannot tolerate arbitrary model outputs
+- Guardrails are also the right choice when you need auditable safety
+- If your application allows the model to execute actions (calling APIs, writing to databases, send...
 
 ## Implementation Steps
 
-1. Guardrails are dedicated processing layers that sit between the components of your LLM pipeline. Think of them as middleware for AI applications. They intercept data at specific points, evaluate it against your policies, and either pass it through, modify it, or reject it entirely.
-2. There are four natural insertion points. Input guardrails sit between the user and the model. They screen incoming prompts for injection attempts, toxic content, or out-of-scope requests before the model ever sees them. Output guardrails sit between the model's response and the user. They catch hallucinated claims, inappropriate content, or leaked sensitive data before it reaches the end user. Retrieval guardrails sit between your knowledge base and the model. When you are doing retrieval-augmented generation, these layers filter or redact retrieved documents to prevent sensitive information from entering the context window. Execution guardrails sit between the model and any tools or APIs it can call. They validate that proposed function calls are within allowed parameters and do not perform destructive operations.
-3. Each guardrail layer can perform three actions. It can pass the data through unchanged, modify the data (for example, redacting PII or rewriting a response), or reject the request entirely with an appropriate error message. The key insight is that these layers operate independently of the model. They can use simple rules, regex patterns, classification models, or even a second LLM call to make their decisions.
+1. Guardrails are dedicated processing layers that sit between the components of your LLM pipeline. Think of them as middleware for AI applications.
+2. There are four natural insertion points. Input guardrails sit between the user and the model.
+3. Each guardrail layer can perform three actions. It can pass the data through unchanged, modify the data (for example, redacting PII or rewriting a response), or reject the request entirely with an appropriate error message.
+4. Adapt the code template below to your specific requirements
+5. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -75,10 +91,12 @@ print(guarded_chat("What are some good stretches for lower back pain?"))
 
 ## Verification Checklist
 
-- [ ] Verified: No most common failure is building guardrails that are too rigid. If your input filter rejects anything that mentions a sensitive topic, you will block legitimate use cases. A medical chatbot that refuses to discuss symptoms because the word "pain" triggered a content filter is useless. Calibrating the sensitivity of each layer requires iteration and real user data.
-- [ ] Verified: Another failure mode is treating guardrails as a one-time setup. Adversarial techniques evolve. New prompt injection methods appear regularly. Your guardrail rules need ongoing maintenance, just like any other security infrastructure.
-- [ ] Verified: Over-reliance on LLM-based guardrails introduces a circular problem. If you are using a language model to check the output of another language model, both can fail in correlated ways. A prompt injection that fools your primary model might also fool your guardrail model. Combining rule-based checks with model-based checks provides better coverage than either approach alone.
-- [ ] Verified: Finally, guardrails add latency. Each layer is an additional processing step. If you chain multiple LLM calls for safety checks, response times can double or triple. You need to balance safety requirements against user experience, possibly running some checks in parallel or using faster classification models for the guardrail layers.
+- [ ] Guardrails are calibrated — not too strict (blocking legitimate use) or too loose
+- [ ] Security checks are in place against prompt injection and adversarial inputs
+- [ ] Verified: Over-reliance on LLM-based guardrails introduces a circular problem.
+- [ ] Latency impact is measured and within acceptable bounds
+- [ ] Implementation follows the Guardrails architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

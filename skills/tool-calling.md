@@ -1,24 +1,39 @@
+---
+name: tool-calling
+description: >-
+  Implement the Tool Calling pattern (Agents). Let LLMs interact with external systems by emitting structured function calls that your code executes safely on their behalf. Use when working with: function-calling, tools, actions, api.
+---
+
 # Tool Calling
 
-> Category: Agents | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/agents/tool-calling
+> Category: Agents | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/agents/tool-calling
 
 ## What This Pattern Solves
 
 **Tool Calling is** a pattern that lets an LLM invoke external functions, APIs, or services during generation. The model outputs a structured function call with arguments, the system executes it, and the result is fed back to the model for the next reasoning step.
 
+## When to Use This Skill
+
+Tool calling is the right pattern whenever the model needs information or capabilities that are not in its training data or the current prompt context. The most common cases are real-time data access (current stock prices, live system status, weather), operations on external systems (sending messages, updating records, triggering workflows), and precise computation (math, date calculations, data transformations where token prediction is unreliable).
+
+It is also the right choice when you want to keep the model's responsibilities narrow. Rather than trying to stuff every possible piece of context into the prompt, you let the model decide what information it needs and fetch it on demand. This keeps prompts small, reduces token costs, and means the model works with current data rather than a potentially stale context snapshot.
+
+If you are building anything that goes beyond question-answering over static text, you will likely need tool calling. It is the foundation of agent-style systems where the model acts as a reasoning and planning layer while external tools handle execution.
+
 ## Architecture Rules
 
-- The pattern works through a structured loop between your application code and the language model. You define a set of tools, each described by a name, a natural language description of what it does, and a schema for its input parameters. You include these tool definitions in the system prompt or API configuration when calling the model.
-- When the model decides it needs to use a tool, it does not generate a natural language response. Instead, it emits a structured object, typically JSON, specifying which tool to call and what arguments to pass. Your application code intercepts this, validates the arguments, executes the actual function (makes the API call, runs the database query, performs the calculation), and returns the result to the model. The model then uses that result to formulate its response to the user.
-- This loop can repeat multiple times within a single conversation turn. The model might call a search tool, examine the results, decide it needs more specific information, call a different tool with refined parameters, and then synthesize a final answer from all the gathered data. Each iteration follows the same pattern: model emits a tool call, your code executes it, the result goes back to the model.
-- The critical architectural point is that the model never executes anything itself. It only produces a description of what it wants to happen. Your code is the execution layer, which means you retain full control over what actually runs. You can validate inputs, enforce rate limits, check permissions, and log every action before it happens. The model proposes; your code disposes.
+- Tool calling is the right pattern whenever the model needs information or capabilities that are n...
+- It is also the right choice when you want to keep the model's responsibilities narrow
+- If you are building anything that goes beyond question-answering over static text, you will likel...
 
 ## Implementation Steps
 
-1. The pattern works through a structured loop between your application code and the language model. You define a set of tools, each described by a name, a natural language description of what it does, and a schema for its input parameters. You include these tool definitions in the system prompt or API configuration when calling the model.
-2. When the model decides it needs to use a tool, it does not generate a natural language response. Instead, it emits a structured object, typically JSON, specifying which tool to call and what arguments to pass. Your application code intercepts this, validates the arguments, executes the actual function (makes the API call, runs the database query, performs the calculation), and returns the result to the model. The model then uses that result to formulate its response to the user.
-3. This loop can repeat multiple times within a single conversation turn. The model might call a search tool, examine the results, decide it needs more specific information, call a different tool with refined parameters, and then synthesize a final answer from all the gathered data. Each iteration follows the same pattern: model emits a tool call, your code executes it, the result goes back to the model.
-4. The critical architectural point is that the model never executes anything itself. It only produces a description of what it wants to happen. Your code is the execution layer, which means you retain full control over what actually runs. You can validate inputs, enforce rate limits, check permissions, and log every action before it happens. The model proposes; your code disposes.
+1. The pattern works through a structured loop between your application code and the language model. You define a set of tools, each described by a name, a natural language description of what it does, and a schema for its input parameters.
+2. When the model decides it needs to use a tool, it does not generate a natural language response. Instead, it emits a structured object, typically JSON, specifying which tool to call and what arguments to pass.
+3. This loop can repeat multiple times within a single conversation turn. The model might call a search tool, examine the results, decide it needs more specific information, call a different tool with refined parameters, and then synthesize a final answer from all the gathered data.
+4. The critical architectural point is that the model never executes anything itself. It only produces a description of what it wants to happen.
+5. Adapt the code template below to your specific requirements
+6. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -75,10 +90,12 @@ def agent_loop(query: str, max_iterations: int = 10) -> str:
 
 ## Verification Checklist
 
-- [ ] Verified: Schema design is where most tool-calling implementations fail first. If the tool description is vague or the parameter names are ambiguous, the model will misinterpret when to use the tool or what arguments to pass. A tool called "search" with a parameter called "query" gives the model very little to work with. A tool called "search_customer_orders" with parameters "customer_id" (required, string) and "date_range" (optional, object with start and end) communicates intent much more clearly. Investing time in precise, well-documented tool schemas pays off immediately in reliability.
-- [ ] Verified: No model calling the wrong tool is a real problem in systems with many tools. If you expose 30 tools, the model may confuse similar-sounding options or try to use a tool for a purpose it was not designed for. Keeping the tool set small and focused for each conversation context helps. You do not need to expose every tool in every interaction.
-- [ ] Verified: Infinite loops happen when the model calls a tool, receives a result it does not understand or cannot use, and calls the same tool again with slightly different parameters, over and over. Setting a maximum tool call count per turn and implementing circuit breakers are basic safeguards.
-- [ ] Verified: Security is the most serious concern. The model is generating inputs that your code will execute. If one of your tools writes to a database or calls a third-party API with side effects, a malicious or confused model could cause real damage. Every tool call should be validated against an allowlist of permitted operations, parameter values should be sanitized, and destructive operations should require explicit confirmation before execution.
+- [ ] Verified: Schema design is where most tool-calling implementations fail first.
+- [ ] Verified: model calling the wrong tool is a real problem in systems with many tools.
+- [ ] Maximum iteration limit is set to prevent infinite loops
+- [ ] Security checks are in place against prompt injection and adversarial inputs
+- [ ] Implementation follows the Tool Calling architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

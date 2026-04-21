@@ -1,24 +1,45 @@
+---
+name: reflection
+description: >-
+  Implement the Reflection pattern (Evaluation). Improve LLM outputs through iterative generate-evaluate-critique-regenerate loops that refine quality without retraining the model. Use when working with: critique, iteration, improvement, self-evaluation.
+---
+
 # Reflection
 
-> Category: Evaluation | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/evaluation/reflection
+> Category: Evaluation | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/evaluation/reflection
 
 ## What This Pattern Solves
 
 **Reflection is** a pattern where an LLM critiques and iteratively improves its own output. After generating an initial response, the model evaluates it against quality criteria, identifies weaknesses, and produces a revised version, repeating until the output meets the desired standard.
 
+## When to Use This Skill
+
+Reflection shines when output quality has a high ceiling and the first draft consistently falls short. Writing tasks, code generation, detailed analysis, and complex summarization all benefit from iterative refinement.
+
+It is especially useful when you can define clear, checkable quality criteria. If you can say "the output must mention all five of these topics" or "the code must handle these three edge cases," those criteria become the evaluator's checklist. Each iteration brings the output closer to meeting all criteria.
+
+Use reflection when the cost of a wrong or mediocre output exceeds the cost of multiple API calls. If you are generating a customer-facing report that will be read by executives, spending three iterations to get it right is a better investment than sending a first-draft quality output.
+
+It is also valuable during development and prompt tuning. Running a reflection loop on sample inputs shows you what kinds of errors your prompts tend to produce, which informs how to improve the prompts themselves.
+
+Avoid reflection for tasks where the first response is already good enough. Simple factual questions, straightforward formatting tasks, and basic classification do not need iterative refinement. The overhead is not justified.
+
 ## Architecture Rules
 
-- Reflection implements the draft-review-revise cycle that good human work goes through. The process has four stages that repeat. First, generate an initial response. Second, send that response to an evaluator that identifies specific problems, gaps, or areas for improvement. Third, use the critique to construct a revised prompt that asks the model to fix the identified issues. Fourth, generate an improved response. Repeat until the output meets your quality bar or you hit a maximum number of iterations.
-- The evaluator is the engine of the whole loop. It can be another LLM prompted with a rubric, a rule-based checker, an external tool that validates factual claims, or even a human reviewer inserted at a checkpoint. What matters is that it produces specific, actionable critique rather than a generic quality score. "The second paragraph incorrectly states that Python uses static typing" is useful feedback. "Score: 3 out of 5" is not, because the generator has nothing concrete to act on.
-- A crucial design choice is whether the evaluator is the same model as the generator. Using the same model is simpler but creates a blind spot. The model may not catch its own mistakes because it has the same biases and knowledge gaps that produced those mistakes in the first place. Using a different model, or a different evaluation approach entirely, introduces a genuinely independent perspective. A fact-checking tool that verifies claims against a database catches errors that no language model would notice through text analysis alone.
-- The loop converges because each iteration addresses specific identified issues rather than generating from scratch. The revised prompt carries forward what was good about the previous response and targets what was wrong. Progress is cumulative. The first iteration might fix factual errors. The second might improve structure. The third might add missing details. Each cycle makes the output strictly better along the dimensions the evaluator checks.
+- Reflection shines when output quality has a high ceiling and the first draft consistently falls s...
+- It is especially useful when you can define clear, checkable quality criteria
+- reflection when the cost of a wrong or mediocre output exceeds the cost of multiple API calls
+- It is also valuable during development and prompt tuning
+- Avoid reflection for tasks where the first response is already good enough
 
 ## Implementation Steps
 
-1. Reflection implements the draft-review-revise cycle that good human work goes through. The process has four stages that repeat. First, generate an initial response. Second, send that response to an evaluator that identifies specific problems, gaps, or areas for improvement. Third, use the critique to construct a revised prompt that asks the model to fix the identified issues. Fourth, generate an improved response. Repeat until the output meets your quality bar or you hit a maximum number of iterations.
-2. The evaluator is the engine of the whole loop. It can be another LLM prompted with a rubric, a rule-based checker, an external tool that validates factual claims, or even a human reviewer inserted at a checkpoint. What matters is that it produces specific, actionable critique rather than a generic quality score. "The second paragraph incorrectly states that Python uses static typing" is useful feedback. "Score: 3 out of 5" is not, because the generator has nothing concrete to act on.
-3. A crucial design choice is whether the evaluator is the same model as the generator. Using the same model is simpler but creates a blind spot. The model may not catch its own mistakes because it has the same biases and knowledge gaps that produced those mistakes in the first place. Using a different model, or a different evaluation approach entirely, introduces a genuinely independent perspective. A fact-checking tool that verifies claims against a database catches errors that no language model would notice through text analysis alone.
-4. The loop converges because each iteration addresses specific identified issues rather than generating from scratch. The revised prompt carries forward what was good about the previous response and targets what was wrong. Progress is cumulative. The first iteration might fix factual errors. The second might improve structure. The third might add missing details. Each cycle makes the output strictly better along the dimensions the evaluator checks.
+1. Reflection implements the draft-review-revise cycle that good human work goes through. The process has four stages that repeat.
+2. The evaluator is the engine of the whole loop. It can be another LLM prompted with a rubric, a rule-based checker, an external tool that validates factual claims, or even a human reviewer inserted at a checkpoint.
+3. A crucial design choice is whether the evaluator is the same model as the generator. Using the same model is simpler but creates a blind spot.
+4. The loop converges because each iteration addresses specific identified issues rather than generating from scratch. The revised prompt carries forward what was good about the previous response and targets what was wrong.
+5. Adapt the code template below to your specific requirements
+6. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -70,10 +91,12 @@ print(result)
 
 ## Verification Checklist
 
-- [ ] Verified: No most frustrating failure mode is oscillation. The evaluator flags an issue, the generator fixes it, and in doing so introduces a different issue that the next evaluation round flags. The output bounces between two imperfect states without converging on a good one. This usually indicates that the evaluation criteria are conflicting or that the generator cannot satisfy all criteria simultaneously.
-- [ ] Verified: Over-iteration degrades quality instead of improving it. After a certain number of rounds, the model starts making changes for the sake of change rather than genuine improvement. It might add unnecessary hedging language, restructure paragraphs without benefit, or introduce new errors while trying to address minor critique points. Setting a maximum iteration count and stopping when improvements become marginal prevents this.
-- [ ] Verified: Evaluator quality is the ceiling for the entire loop. If the evaluator misses a class of errors, no amount of iteration will fix them. If the evaluator flags things that are not actually problems, the generator will waste cycles making unnecessary changes. The evaluator needs to be at least as discerning as the quality bar you are trying to meet.
-- [ ] Verified: Context window pressure builds with each iteration. The revised prompt needs to include the previous output plus the critique plus new instructions. After several rounds, the accumulated context can crowd out important details or push past the model's effective context length. Summarizing previous feedback rather than including it verbatim helps manage this.
+- [ ] Verified: most frustrating failure mode is oscillation.
+- [ ] Verified: Over-iteration degrades quality instead of improving it.
+- [ ] Maximum iteration limit is set to prevent infinite loops
+- [ ] Context window usage is managed — retrieved content fits within model limits
+- [ ] Implementation follows the Reflection architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

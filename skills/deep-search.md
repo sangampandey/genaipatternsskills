@@ -1,40 +1,55 @@
+---
+name: deep-search
+description: >-
+  Implement the Deep Search pattern (RAG). Answer complex multi-hop questions through iterative cycles of retrieval, reasoning, and gap analysis across multiple sources. Use when working with: multi-hop, iterative, research, deep-research.
+---
+
 # Deep Search
 
-> Category: RAG | Difficulty: advanced | Pattern: genaipatterns.dev/patterns/rag/deep-search
+> Category: RAG | Difficulty: advanced | Reference: https://www.genaipatterns.dev/patterns/rag/deep-search
 
 ## What This Pattern Solves
 
 **Deep Search is** a pattern that runs multiple retrieval passes with query reformulation, branching, and aggregation to find information that a single retrieval step would miss. It trades latency for recall by exploring the document space more thoroughly than basic RAG.
 
+## When to Use This Skill
+
+Deep Search is designed for questions that require synthesis across multiple documents or data sources. If your users regularly ask questions that start with "compare," "analyze the trend," "what is the relationship between," or "summarize all," you likely need iterative retrieval.
+
+It is also the right pattern when your knowledge base is large and heterogeneous. A corpus of 10,000 documents spanning multiple domains, formats, and time periods is almost guaranteed to require multi-hop reasoning for non-trivial questions.
+
+Do not reach for Deep Search when simple questions dominate your workload. If 90% of queries can be answered from a single chunk, the overhead of iterative retrieval is not justified. Use it selectively, either as a separate "deep research" mode that users can invoke explicitly, or triggered automatically when the system detects that a question is complex.
+
+The latency profile is very different from basic RAG. A single retrieval round might take 200 milliseconds. Three to five rounds of retrieval with reasoning in between can take 5 to 30 seconds. Users need to understand that they are waiting for a more thorough answer, not experiencing a bug.
+
 ## Architecture Rules
 
-- Deep Search replaces the single retrieve-generate cycle with an iterative loop. The system retrieves, reasons about what it found, identifies gaps, and retrieves again. It keeps going until it has gathered enough information to produce a complete answer, or until it exhausts its budget of retrieval rounds.
-- The loop works like this. First, the system decomposes the original question into sub-questions. "Which microservices had the most incidents last quarter?" becomes one sub-query. "What root causes were identified?" becomes another. "What architectural changes were proposed?" becomes a third. Each sub-question can target different data sources and use different retrieval strategies.
-- After the first retrieval round, a reasoning step evaluates the results. This is where Deep Search diverges from basic RAG. Instead of passing everything to the generator immediately, the system asks: Do I have enough to answer each sub-question? Are there contradictions in what I found? Are there references to other documents I should follow? This evaluation produces a quality assessment and, critically, a list of information gaps.
-- If gaps exist, the system formulates new queries to fill them. These follow-up queries are informed by what was already retrieved. If the first round found incident reports for three services, the follow-up might specifically search for post-mortems related to those three services. If a post-mortem references an RFC, the follow-up retrieves that RFC. Each round builds on the previous one.
-- The loop has exit conditions. The obvious one is that all sub-questions are answered with sufficient evidence. A budget limit prevents runaway costs, typically measured in total retrieval calls or elapsed time. A diminishing returns check stops the loop when new retrievals are not adding meaningful information.
-- Cross-document reasoning happens throughout the process. As the system accumulates chunks from different sources, it looks for connections, contradictions, and patterns. If two post-mortems identify different root causes for the same service, that contradiction is noted and included in the final answer rather than silently resolved.
-- The retrieval sources are not limited to a single vector index. Deep Search can query your knowledge base, call web search APIs, run SQL queries against structured databases, or hit internal APIs. Each sub-question routes to whichever source is most likely to have the answer. The system acts less like a search engine and more like a researcher working through a problem methodically.
+- Deep Search is designed for questions that require synthesis across multiple documents or data so...
+- It is also the right pattern when your knowledge base is large and heterogeneous
+- Do not reach for Deep Search when simple questions dominate your workload
+- latency profile is very different from basic RAG
 
 ## Implementation Steps
 
-1. Deep Search replaces the single retrieve-generate cycle with an iterative loop. The system retrieves, reasons about what it found, identifies gaps, and retrieves again. It keeps going until it has gathered enough information to produce a complete answer, or until it exhausts its budget of retrieval rounds.
-2. The loop works like this. First, the system decomposes the original question into sub-questions. "Which microservices had the most incidents last quarter?" becomes one sub-query. "What root causes were identified?" becomes another. "What architectural changes were proposed?" becomes a third. Each sub-question can target different data sources and use different retrieval strategies.
-3. After the first retrieval round, a reasoning step evaluates the results. This is where Deep Search diverges from basic RAG. Instead of passing everything to the generator immediately, the system asks: Do I have enough to answer each sub-question? Are there contradictions in what I found? Are there references to other documents I should follow? This evaluation produces a quality assessment and, critically, a list of information gaps.
-4. If gaps exist, the system formulates new queries to fill them. These follow-up queries are informed by what was already retrieved. If the first round found incident reports for three services, the follow-up might specifically search for post-mortems related to those three services. If a post-mortem references an RFC, the follow-up retrieves that RFC. Each round builds on the previous one.
-5. The loop has exit conditions. The obvious one is that all sub-questions are answered with sufficient evidence. A budget limit prevents runaway costs, typically measured in total retrieval calls or elapsed time. A diminishing returns check stops the loop when new retrievals are not adding meaningful information.
-6. Cross-document reasoning happens throughout the process. As the system accumulates chunks from different sources, it looks for connections, contradictions, and patterns. If two post-mortems identify different root causes for the same service, that contradiction is noted and included in the final answer rather than silently resolved.
+1. Deep Search replaces the single retrieve-generate cycle with an iterative loop. The system retrieves, reasons about what it found, identifies gaps, and retrieves again.
+2. The loop works like this. First, the system decomposes the original question into sub-questions.
+3. After the first retrieval round, a reasoning step evaluates the results. This is where Deep Search diverges from basic RAG.
+4. If gaps exist, the system formulates new queries to fill them. These follow-up queries are informed by what was already retrieved.
+5. The loop has exit conditions. The obvious one is that all sub-questions are answered with sufficient evidence.
+6. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
-See the full pattern page for code examples: genaipatterns.dev/patterns/rag/deep-search
+See the full pattern page for code examples: https://www.genaipatterns.dev/patterns/rag/deep-search
 
 ## Verification Checklist
 
-- [ ] Verified: No biggest risk is scope creep during the research loop. Each reasoning step can identify new gaps, and each new retrieval can surface references to more documents. Without strict budget controls, the system can spiral into an expensive research session that retrieves dozens of documents for a question that did not warrant it.
-- [ ] Verified: Query decomposition can go wrong in subtle ways. If the system breaks a question into sub-questions that miss an important dimension, no amount of iterative retrieval will find the missing piece. The decomposition step needs to be thorough, and it helps to have the system explicitly state its sub-questions so they can be inspected.
-- [ ] Verified: Contradiction handling is hard. When two authoritative sources disagree, the system needs a strategy. Presenting both viewpoints is often the right choice, but it requires the system to detect the contradiction in the first place, which is not trivial.
-- [ ] Verified: Information staleness compounds across retrieval rounds. If the first round retrieves a document from last year and the third round retrieves an update from last month, the system needs to recognize the temporal relationship and prefer the newer information. Without date awareness, it might synthesize an answer that mixes outdated and current information without distinguishing between them.
+- [ ] Maximum iteration limit is set to prevent infinite loops
+- [ ] Verified: Query decomposition can go wrong in subtle ways.
+- [ ] Verified: Contradiction handling is hard.
+- [ ] Data freshness is maintained — indexes/caches stay in sync with source
+- [ ] Implementation follows the Deep Search architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

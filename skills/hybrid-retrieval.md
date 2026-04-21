@@ -1,37 +1,58 @@
+---
+name: hybrid-retrieval
+description: >-
+  Implement the Hybrid Retrieval pattern (RAG). Bridge the vocabulary gap between user queries and knowledge base content using hypothetical answers, query expansion, and hybrid search. Use when working with: retrieval, hyde, query-expansion, hybrid-search.
+---
+
 # Hybrid Retrieval
 
-> Category: RAG | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/rag/hybrid-retrieval
+> Category: RAG | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/rag/hybrid-retrieval
 
 ## What This Pattern Solves
 
 **Hybrid Retrieval is** a pattern that adapts the retrieval strategy based on the structure and metadata of the underlying index. Instead of treating all queries the same, it uses filters, hybrid search, or multi-index routing to narrow the search space before ranking.
 
+## When to Use This Skill
+
+Start with basic vector search and measure your retrieval quality. If you notice that relevant documents frequently appear outside the top-k results, or that users rephrase questions multiple times before getting a good answer, you have a vocabulary gap problem.
+
+HyDE works well when your knowledge base uses specialized terminology and your users do not. It adds one LLM call per query, so it is best suited for use cases where latency tolerance is moderate and retrieval accuracy matters more than speed.
+
+Query expansion is a lighter touch. It works well when users tend to ask short, ambiguous questions. If your average query is three to five words, expansion helps fill in the missing context.
+
+Hybrid search should be your default in production. The cost of running BM25 alongside vector search is minimal, and the accuracy improvement is consistent across domains. There is rarely a good reason not to use it.
+
+Graph-based retrieval makes sense when your knowledge base has strong entity relationships, when questions often require connecting information across documents, or when you have a well-structured corpus like technical documentation with cross-references.
+
 ## Architecture Rules
 
-- Index-aware retrieval is a family of techniques that reshape either the query or the search mechanism to account for how information is actually stored in your index. Instead of hoping the user's words land close enough to the right embeddings, you actively bridge the gap.
-- **HyDE (Hypothetical Document Embeddings)** flips the retrieval problem on its head. Before searching, you ask an LLM to generate a hypothetical answer to the user's question. You do not show this answer to the user. Instead, you embed the hypothetical answer and use that embedding as your search vector. The intuition is that a plausible answer will use vocabulary much closer to what exists in your knowledge base than the original question did. A hypothetical answer to "fix a flaky deploy" might mention "intermittent failures," "retry logic," and "pipeline stability," which are exactly the terms your indexed documents contain.
-- **Query expansion** takes a different approach. Rather than generating a full answer, you rewrite the original query into multiple variations that cover different phrasings. "Fix a flaky deploy" becomes three or four queries: "resolve intermittent deployment failures," "CI/CD pipeline instability troubleshooting," "unreliable release process." You run all of them and merge the results. This casts a wider net without inventing a hypothetical answer.
-- **Hybrid search** attacks the problem from the retrieval engine side. Pure vector search captures semantic meaning but can miss exact keyword matches. Traditional keyword search (BM25) catches exact terms but misses semantic similarity. Hybrid search runs both in parallel and combines their scores with a tunable weight, often called alpha. At alpha=0 you get pure keyword search. At alpha=1, pure vector. Most production systems land somewhere around 0.5 to 0.7, leaning toward semantic but keeping keyword matching as a safety net.
-- **Graph-based retrieval** adds structural relationships between chunks. Instead of treating every chunk as an independent point in vector space, you build a graph where chunks link to related chunks, parent documents, entities, and concepts. When a query matches one chunk, the graph lets you pull in neighboring chunks that share entities or belong to the same topic cluster. This is especially powerful for questions that span multiple documents or require connecting information from different sections.
+- Start with basic vector search and measure your retrieval quality
+- HyDE works well when your knowledge base uses specialized terminology and your users do not
+- Query expansion is a lighter touch
+- Hybrid search should be your default in production
+- Graph-based retrieval makes sense when your knowledge base has strong entity rel
 
 ## Implementation Steps
 
 1. Index-aware retrieval is a family of techniques that reshape either the query or the search mechanism to account for how information is actually stored in your index. Instead of hoping the user's words land close enough to the right embeddings, you actively bridge the gap.
-2. *HyDE (Hypothetical Document Embeddings)** flips the retrieval problem on its head. Before searching, you ask an LLM to generate a hypothetical answer to the user's question. You do not show this answer to the user. Instead, you embed the hypothetical answer and use that embedding as your search vector. The intuition is that a plausible answer will use vocabulary much closer to what exists in your knowledge base than the original question did. A hypothetical answer to "fix a flaky deploy" might mention "intermittent failures," "retry logic," and "pipeline stability," which are exactly the terms your indexed documents contain.
-3. *Query expansion** takes a different approach. Rather than generating a full answer, you rewrite the original query into multiple variations that cover different phrasings. "Fix a flaky deploy" becomes three or four queries: "resolve intermittent deployment failures," "CI/CD pipeline instability troubleshooting," "unreliable release process." You run all of them and merge the results. This casts a wider net without inventing a hypothetical answer.
-4. *Hybrid search** attacks the problem from the retrieval engine side. Pure vector search captures semantic meaning but can miss exact keyword matches. Traditional keyword search (BM25) catches exact terms but misses semantic similarity. Hybrid search runs both in parallel and combines their scores with a tunable weight, often called alpha. At alpha=0 you get pure keyword search. At alpha=1, pure vector. Most production systems land somewhere around 0.5 to 0.7, leaning toward semantic but keeping keyword matching as a safety net.
-5. *Graph-based retrieval** adds structural relationships between chunks. Instead of treating every chunk as an independent point in vector space, you build a graph where chunks link to related chunks, parent documents, entities, and concepts. When a query matches one chunk, the graph lets you pull in neighboring chunks that share entities or belong to the same topic cluster. This is especially powerful for questions that span multiple documents or require connecting information from different sections.
+2. *HyDE (Hypothetical Document Embeddings)** flips the retrieval problem on its head. Before searching, you ask an LLM to generate a hypothetical answer to the user's question.
+3. *Query expansion** takes a different approach. Rather than generating a full answer, you rewrite the original query into multiple variations that cover different phrasings.
+4. *Hybrid search** attacks the problem from the retrieval engine side. Pure vector search captures semantic meaning but can miss exact keyword matches.
+5. *Graph-based retrieval** adds structural relationships between chunks. Instead of treating every chunk as an independent point in vector space, you build a graph where chunks link to related chunks, parent documents, entities, and concepts.
+6. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
-See the full pattern page for code examples: genaipatterns.dev/patterns/rag/hybrid-retrieval
+See the full pattern page for code examples: https://www.genaipatterns.dev/patterns/rag/hybrid-retrieval
 
 ## Verification Checklist
 
-- [ ] Verified: HyDE can backfire if the LLM generates a confidently wrong hypothetical answer. If the hypothetical mentions incorrect terminology, you will retrieve documents related to the wrong concept entirely. This is especially risky in specialized domains where the LLM lacks deep knowledge.
-- [ ] Verified: Query expansion can introduce noise. If your rewritten queries drift too far from the original intent, you pull in irrelevant results that dilute the good ones. Five expanded queries that each return ten results means fifty candidates to process, and many of them may be off-topic.
-- [ ] Verified: Hybrid search requires tuning the alpha parameter per domain. A value that works for legal documents may perform poorly for code documentation. If you set it once and forget it, you lose much of the benefit.
-- [ ] Verified: Graph-based approaches carry the highest implementation cost. Building and maintaining the graph requires entity extraction, relationship mapping, and ongoing updates as your knowledge base changes. If your corpus is flat and unstructured, the graph adds complexity without proportional benefit.
+- [ ] Monitoring and logging are configured for production debugging
+- [ ] Relevance filtering is in place — irrelevant results are filtered before reaching the model
+- [ ] Verified: Hybrid search requires tuning the alpha parameter per domain.
+- [ ] Cost per request is estimated and within budget
+- [ ] Implementation follows the Hybrid Retrieval architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

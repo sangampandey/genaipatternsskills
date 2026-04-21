@@ -1,41 +1,56 @@
+---
+name: agentic-rag
+description: >-
+  Implement the Agentic RAG pattern (RAG). Give an AI agent control over when, where, and how to retrieve information rather than using a fixed retrieval pipeline. Use when working with: agents, adaptive-retrieval, multi-source, orchestration.
+---
+
 # Agentic RAG
 
-> Category: RAG | Difficulty: advanced | Pattern: genaipatterns.dev/patterns/rag/agentic-rag
+> Category: RAG | Difficulty: advanced | Reference: https://www.genaipatterns.dev/patterns/rag/agentic-rag
 
 ## What This Pattern Solves
 
 **Agentic RAG is** a pattern that gives an autonomous agent control over the retrieval process. The agent decides when to search, what queries to run, which sources to consult, and when it has gathered enough evidence to synthesize an answer, using a reasoning loop to drive retrieval decisions.
 
+## When to Use This Skill
+
+Agentic RAG is the right pattern when your system needs to serve diverse query types that require fundamentally different retrieval strategies. If some questions need vector search, others need SQL, others need web search, and others need no retrieval at all, an agent that can choose the right approach per query will outperform any fixed pipeline.
+
+It is also the right choice when your data lives in multiple systems that cannot be unified into a single index. Enterprise environments often have knowledge spread across wikis, databases, ticketing systems, code repositories, and cloud storage. An agent that can reach into each system as needed is more practical than trying to index everything into one vector store.
+
+Consider Agentic RAG when your users ask unpredictable questions. If you can enumerate all the query types your system needs to handle, a fixed pipeline with routing might be simpler. But if users regularly surprise you with questions that do not fit your existing retrieval patterns, an agent's flexibility becomes valuable.
+
+Do not start here. Basic RAG, then Hybrid Retrieval, then Retrieval Refinement, then consider whether you need agent-level control. Each step up adds complexity. Make sure the simpler patterns are genuinely insufficient before introducing an agent.
+
 ## Architecture Rules
 
-- Agentic RAG gives an AI agent control over the retrieval process itself. Instead of a fixed pipeline, the agent decides at each step whether to search, what to search for, which tools to use, and when it has gathered enough information to answer. The retrieval strategy emerges from the agent's reasoning about the specific question rather than from a predetermined flow.
-- The agent has access to a set of retrieval tools. A vector search tool for the knowledge base. A web search tool for current information. A SQL query tool for structured data. An API tool for pulling from internal systems. A code search tool for navigating repositories. Each tool has a description that tells the agent what kind of information it can provide and when it is useful.
-- When a query arrives, the agent first reasons about what information it needs. For "What is our refund policy?" it might decide that a single vector search against the policy documents is sufficient. For the complex refund analysis question, it might plan a multi-step approach: first query the knowledge base for the current and previous refund policies, then run a SQL query to pull refund rate metrics, then search customer feedback data for sentiment about the policy change.
-- The agent executes its plan iteratively. After each tool call, it evaluates the results and decides what to do next. If the vector search returns low-relevance chunks, it can reformulate the query and try again. If the SQL query reveals an unexpected spike in refunds during a specific week, it can search for internal communications from that week to understand why. This adaptive behavior is the key difference from a fixed pipeline.
-- Routing is a simpler form of the same idea. Instead of giving the agent full autonomy, you let it choose which retrieval path to take based on query classification. A question about current events routes to web search. A question about internal processes routes to the knowledge base. A question about metrics routes to the analytics database. This is less flexible than full agent control but easier to implement and reason about.
-- The agent can also decide not to retrieve at all. If the conversation already contains the necessary context, or if the question is about something the agent can reason about directly, skipping retrieval saves time and avoids introducing noise. This judgment call is something a fixed pipeline cannot make.
-- Sub-query decomposition happens naturally in this pattern. The agent breaks complex questions into parts, addresses each part with the most appropriate tool, and synthesizes the results. Unlike Deep Search, where the iteration loop is a structural pattern, here the decomposition and iteration emerge from the agent's reasoning. The agent might decompose a question into two sub-queries or seven, depending on what it discovers along the way.
+- Agentic RAG is the right pattern when your system needs to serve diverse query types that require...
+- It is also the right choice when your data lives in multiple systems that cannot be unified into ...
+- Consider Agentic RAG when your users ask unpredictable questions
+- Do not start here
 
 ## Implementation Steps
 
-1. Agentic RAG gives an AI agent control over the retrieval process itself. Instead of a fixed pipeline, the agent decides at each step whether to search, what to search for, which tools to use, and when it has gathered enough information to answer. The retrieval strategy emerges from the agent's reasoning about the specific question rather than from a predetermined flow.
-2. The agent has access to a set of retrieval tools. A vector search tool for the knowledge base. A web search tool for current information. A SQL query tool for structured data. An API tool for pulling from internal systems. A code search tool for navigating repositories. Each tool has a description that tells the agent what kind of information it can provide and when it is useful.
-3. When a query arrives, the agent first reasons about what information it needs. For "What is our refund policy?" it might decide that a single vector search against the policy documents is sufficient. For the complex refund analysis question, it might plan a multi-step approach: first query the knowledge base for the current and previous refund policies, then run a SQL query to pull refund rate metrics, then search customer feedback data for sentiment about the policy change.
-4. The agent executes its plan iteratively. After each tool call, it evaluates the results and decides what to do next. If the vector search returns low-relevance chunks, it can reformulate the query and try again. If the SQL query reveals an unexpected spike in refunds during a specific week, it can search for internal communications from that week to understand why. This adaptive behavior is the key difference from a fixed pipeline.
-5. Routing is a simpler form of the same idea. Instead of giving the agent full autonomy, you let it choose which retrieval path to take based on query classification. A question about current events routes to web search. A question about internal processes routes to the knowledge base. A question about metrics routes to the analytics database. This is less flexible than full agent control but easier to implement and reason about.
-6. The agent can also decide not to retrieve at all. If the conversation already contains the necessary context, or if the question is about something the agent can reason about directly, skipping retrieval saves time and avoids introducing noise. This judgment call is something a fixed pipeline cannot make.
+1. Agentic RAG gives an AI agent control over the retrieval process itself. Instead of a fixed pipeline, the agent decides at each step whether to search, what to search for, which tools to use, and when it has gathered enough information to answer.
+2. The agent has access to a set of retrieval tools. A vector search tool for the knowledge base.
+3. When a query arrives, the agent first reasons about what information it needs. For "What is our refund policy?
+4. The agent executes its plan iteratively. After each tool call, it evaluates the results and decides what to do next.
+5. Routing is a simpler form of the same idea. Instead of giving the agent full autonomy, you let it choose which retrieval path to take based on query classification.
+6. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
-See the full pattern page for code examples: genaipatterns.dev/patterns/rag/agentic-rag
+See the full pattern page for code examples: https://www.genaipatterns.dev/patterns/rag/agentic-rag
 
 ## Verification Checklist
 
-- [ ] Verified: No agent can make poor tool choices. If it decides to run a SQL query when a vector search would be faster and more appropriate, you get worse results at higher latency. Tool descriptions need to be clear and specific so the agent can make informed decisions. Vague descriptions lead to vague routing decisions.
-- [ ] Verified: Unbounded exploration is a risk. Without cost and time limits, an agent can chain together dozens of tool calls, each one seeming reasonable in isolation but collectively burning through budget and patience. You need hard limits on total tool calls per query, total tokens consumed, and wall-clock time.
-- [ ] Verified: Error handling gets complicated. When a tool call fails, the agent needs to recover gracefully. It might retry with different parameters, fall back to a different tool, or decide it cannot answer that part of the question. Each failure path needs to be handled. In a fixed pipeline, failure modes are predictable. With an agent, they are combinatorial.
-- [ ] Verified: No agent can develop blind spots. If it learns that vector search usually works, it might default to vector search even when SQL would be better. Testing needs to cover diverse query types to ensure the agent actually uses the full range of tools available to it.
-- [ ] Verified: Observability is harder than with fixed pipelines. Each query can take a different path through the system, making it difficult to aggregate metrics, identify bottlenecks, or reproduce issues. You need detailed tracing that captures every decision the agent makes and every tool call it executes.
+- [ ] Latency impact is measured and within acceptable bounds
+- [ ] Cost per request is estimated and within budget
+- [ ] Errors are handled gracefully with appropriate fallbacks
+- [ ] Verified: agent can develop blind spots.
+- [ ] Monitoring and logging are configured for production debugging
+- [ ] Implementation follows the Agentic RAG architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

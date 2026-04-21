@@ -1,39 +1,58 @@
+---
+name: retrieval-refinement
+description: >-
+  Implement the Retrieval Refinement pattern (RAG). Improve retrieval quality by reranking, compressing, and filtering retrieved chunks between the vector search step and LLM generation. Use when working with: reranking, compression, filtering, relevance.
+---
+
 # Retrieval Refinement
 
-> Category: RAG | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/rag/retrieval-refinement
+> Category: RAG | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/rag/retrieval-refinement
 
 ## What This Pattern Solves
 
 **Retrieval Refinement is** a pattern that refines retrieved chunks after the initial search but before they reach the LLM. Techniques include re-ranking by relevance, deduplicating near-identical passages, filtering by recency or metadata, and compressing context to fit token budgets.
 
+## When to Use This Skill
+
+If your retrieval accuracy is below 80% on your evaluation set and you have already tuned your embedding model and chunking strategy, postprocessing is the next lever to pull. Reranking alone often yields a 10 to 25 percentage point improvement in relevance metrics.
+
+Use reranking when you can tolerate an additional 100 to 300 milliseconds of latency per query. Cross-encoder models are slower than bi-encoder retrieval but still fast enough for most interactive use cases.
+
+Use contextual compression when your chunks are large, say 500 tokens or more, and you are concerned about context window usage or LLM distraction from irrelevant content.
+
+Use metadata filtering when your knowledge base has clear freshness requirements, when documents have reliable source quality indicators, or when entity ambiguity is a known issue.
+
+Skip postprocessing if your retrieval is already highly accurate, if latency requirements are extremely tight (under 200ms total), or if your knowledge base is small enough that retrieved chunks are almost always relevant.
+
 ## Architecture Rules
 
-- Node postprocessing is a processing stage that sits between retrieval and generation. It takes the raw retrieved chunks and transforms them into a refined set that is actually useful for the LLM. Think of it as a quality control checkpoint.
-- **Reranking** is the most impactful technique. You take your initial retrieved set, typically 20 to 50 chunks, and pass them through a cross-encoder model that scores each chunk against the original query. Unlike the embedding model used during retrieval, a cross-encoder sees the query and the chunk together and can make fine-grained relevance judgments. It can distinguish between "this chunk is about the same topic" and "this chunk directly answers this question." After reranking, you take the top-k results from the reranked list, typically 3 to 5 chunks. The improvement is often dramatic. Documents that were buried at position 15 in the original ranking jump to position 1.
-- **Contextual compression** addresses the problem of chunks that contain the answer alongside a lot of noise. Instead of passing the entire chunk to the LLM, you use a smaller model to extract only the sentences or passages that are relevant to the query. A 500-token chunk might get compressed down to 80 tokens of highly relevant content. This saves context window space and reduces the chance that the LLM latches onto irrelevant parts of the chunk.
-- **Disambiguation** handles the entity collision problem. When your knowledge base contains documents about multiple entities that share a name, retrieved chunks can mix them together. A postprocessing step can detect when chunks refer to different entities and filter out the ones that do not match the user's intent. This often requires looking at metadata like document source, category, or timestamp to resolve the ambiguity.
-- **Metadata filtering** applies hard constraints based on chunk metadata. You might filter by recency, keeping only documents updated in the last year. You might filter by source, preferring official documentation over community posts. You might filter by confidence score, dropping anything below a threshold. These filters are simple but they prevent entire categories of bad results from reaching the LLM.
-- These techniques compose well. A typical production pipeline retrieves a broad initial set, applies metadata filters to remove obviously irrelevant chunks, reranks the remainder, compresses the top results, and passes the compressed output to the LLM.
+- If your retrieval accuracy is below 80% on your evaluation set and you have already tuned your em...
+- reranking when you can tolerate an additional 100 to 300 milliseconds of latency per query
+- contextual compression when your chunks are large, say 500 tokens or more, a
+- metadata filtering when your knowledge base has clear freshness requirements
+- Skip postprocessing if your retrieval is already highly accurate, if latency req
 
 ## Implementation Steps
 
-1. Node postprocessing is a processing stage that sits between retrieval and generation. It takes the raw retrieved chunks and transforms them into a refined set that is actually useful for the LLM. Think of it as a quality control checkpoint.
-2. *Reranking** is the most impactful technique. You take your initial retrieved set, typically 20 to 50 chunks, and pass them through a cross-encoder model that scores each chunk against the original query. Unlike the embedding model used during retrieval, a cross-encoder sees the query and the chunk together and can make fine-grained relevance judgments. It can distinguish between "this chunk is about the same topic" and "this chunk directly answers this question." After reranking, you take the top-k results from the reranked list, typically 3 to 5 chunks. The improvement is often dramatic. Documents that were buried at position 15 in the original ranking jump to position 1.
-3. *Contextual compression** addresses the problem of chunks that contain the answer alongside a lot of noise. Instead of passing the entire chunk to the LLM, you use a smaller model to extract only the sentences or passages that are relevant to the query. A 500-token chunk might get compressed down to 80 tokens of highly relevant content. This saves context window space and reduces the chance that the LLM latches onto irrelevant parts of the chunk.
-4. *Disambiguation** handles the entity collision problem. When your knowledge base contains documents about multiple entities that share a name, retrieved chunks can mix them together. A postprocessing step can detect when chunks refer to different entities and filter out the ones that do not match the user's intent. This often requires looking at metadata like document source, category, or timestamp to resolve the ambiguity.
-5. *Metadata filtering** applies hard constraints based on chunk metadata. You might filter by recency, keeping only documents updated in the last year. You might filter by source, preferring official documentation over community posts. You might filter by confidence score, dropping anything below a threshold. These filters are simple but they prevent entire categories of bad results from reaching the LLM.
-6. These techniques compose well. A typical production pipeline retrieves a broad initial set, applies metadata filters to remove obviously irrelevant chunks, reranks the remainder, compresses the top results, and passes the compressed output to the LLM.
+1. Node postprocessing is a processing stage that sits between retrieval and generation. It takes the raw retrieved chunks and transforms them into a refined set that is actually useful for the LLM.
+2. *Reranking** is the most impactful technique. You take your initial retrieved set, typically 20 to 50 chunks, and pass them through a cross-encoder model that scores each chunk against the original query.
+3. *Contextual compression** addresses the problem of chunks that contain the answer alongside a lot of noise. Instead of passing the entire chunk to the LLM, you use a smaller model to extract only the sentences or passages that are relevant to the query.
+4. *Disambiguation** handles the entity collision problem. When your knowledge base contains documents about multiple entities that share a name, retrieved chunks can mix them together.
+5. *Metadata filtering** applies hard constraints based on chunk metadata. You might filter by recency, keeping only documents updated in the last year.
+6. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
-See the full pattern page for code examples: genaipatterns.dev/patterns/rag/retrieval-refinement
+See the full pattern page for code examples: https://www.genaipatterns.dev/patterns/rag/retrieval-refinement
 
 ## Verification Checklist
 
-- [ ] Verified: Reranking models have their own biases. They can prefer longer chunks over shorter ones, favor formal language over casual documentation, or struggle with domain-specific terminology they were not trained on. If you use a general-purpose reranker on a highly specialized corpus, the reranking might make things worse.
-- [ ] Verified: Contextual compression can accidentally remove important context. If a chunk says "unlike the previous approach, this method uses connection pooling," the compression step might extract "this method uses connection pooling" and drop the contrast with the previous approach. That lost context can change the meaning of the extracted passage.
-- [ ] Verified: Over-filtering is a real risk. If your metadata filters are too aggressive, you might filter out the only chunk that contains the answer. A strict recency filter will drop older documents that are still accurate. A strict source filter might exclude community-written content that happens to have the best explanation.
-- [ ] Verified: Stacking too many postprocessing steps creates a pipeline that is hard to debug. When the final answer is wrong, you need to trace back through compression, reranking, filtering, and retrieval to find where the relevant information was lost. Each step is a potential point of failure.
+- [ ] Monitoring and logging are configured for production debugging
+- [ ] Verified: Contextual compression can accidentally remove important context.
+- [ ] Verified: Over-filtering is a real risk.
+- [ ] Verified: Stacking too many postprocessing steps creates a pipeline that is hard to debug.
+- [ ] Implementation follows the Retrieval Refinement architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

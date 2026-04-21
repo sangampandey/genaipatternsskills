@@ -1,28 +1,48 @@
+---
+name: multi-agent-collaboration
+description: >-
+  Implement the Multi-Agent Collaboration pattern (Agents). Coordinate multiple specialized agents to solve complex tasks that exceed any single agent's capabilities using supervisor or peer topologies. Use when working with: multi-agent, orchestration, supervisor, delegation.
+---
+
 # Multi-Agent Collaboration
 
-> Category: Agents | Difficulty: advanced | Pattern: genaipatterns.dev/patterns/agents/multi-agent-collaboration
+> Category: Agents | Difficulty: advanced | Reference: https://www.genaipatterns.dev/patterns/agents/multi-agent-collaboration
 
 ## What This Pattern Solves
 
 **Multi-Agent Collaboration is** a pattern where multiple specialized LLM agents work together on a task. Each agent has a defined role, toolset, and expertise area. A coordinator routes subtasks to the right agent and merges their outputs into a coherent result.
 
+## When to Use This Skill
+
+Multi-agent collaboration makes sense when the task naturally decomposes into distinct domains that require different expertise, tools, or context.
+
+Good indicators:
+
+- The task involves multiple disciplines (research, coding, design, analysis) that would require very different tool sets
+- A single agent's context window cannot hold all the information needed for the full task
+- You want to use different models for different subtasks, perhaps a cheaper model for simple classification and a powerful model for code generation
+- You need clear audit trails showing which agent made which decision
+- The system needs to scale, and different subtasks have different latency or cost profiles
+
+If the task is straightforward enough that a single agent with a few tools can handle it reliably, adding multiple agents is unnecessary overhead. The coordination cost is real. Every message between agents costs tokens and adds latency.
+
 ## Architecture Rules
 
-- Instead of one agent doing everything, you create multiple agents that each focus on a narrow domain. A research agent knows how to search the web and synthesize findings. A coding agent knows how to write and modify code. A review agent knows how to evaluate code quality. Each agent has its own system prompt, its own set of tools, and its own area of expertise.
-- The interesting question is how these agents coordinate. There are three main orchestration patterns.
-- In the **supervisor** pattern, one agent acts as the coordinator. It receives the user request, decides which specialist agent should handle each part, delegates work, collects results, and assembles the final response. The specialist agents never talk to each other directly. All communication flows through the supervisor. This is the simplest pattern to implement and reason about.
-- The **peer-to-peer** pattern lets agents communicate directly with each other. A coding agent might ask a research agent to look up an API specification, receive the answer, and continue its work without a central coordinator. This is more flexible but harder to debug because the flow of control is distributed. You need clear protocols for how agents discover and message each other.
-- The **hierarchical** pattern adds layers of delegation. A top-level supervisor delegates to mid-level supervisors, who delegate to specialist agents. This works for very complex tasks where even the subtasks are too broad for a single agent. Think of a software project manager who delegates to a frontend lead and a backend lead, each of whom manages their own team of specialists.
-- Regardless of the orchestration pattern, the key principle is the same. Each agent is small, focused, and independently testable. You can swap out the coding agent for a better one without touching the research agent. You can test the review agent in isolation by feeding it code samples.
+- Multi-agent collaboration makes sense when the task naturally decomposes into di
+- Good indicators:
+- task involves multiple disciplines (research, coding, design, analysis) that
+- single agent's context window cannot hold all the information needed for the f
+- You want to use different models for different subtasks, perhaps a cheaper model
 
 ## Implementation Steps
 
-1. Instead of one agent doing everything, you create multiple agents that each focus on a narrow domain. A research agent knows how to search the web and synthesize findings. A coding agent knows how to write and modify code. A review agent knows how to evaluate code quality. Each agent has its own system prompt, its own set of tools, and its own area of expertise.
+1. Instead of one agent doing everything, you create multiple agents that each focus on a narrow domain. A research agent knows how to search the web and synthesize findings.
 2. The interesting question is how these agents coordinate. There are three main orchestration patterns.
-3. In the **supervisor** pattern, one agent acts as the coordinator. It receives the user request, decides which specialist agent should handle each part, delegates work, collects results, and assembles the final response. The specialist agents never talk to each other directly. All communication flows through the supervisor. This is the simplest pattern to implement and reason about.
-4. The **peer-to-peer** pattern lets agents communicate directly with each other. A coding agent might ask a research agent to look up an API specification, receive the answer, and continue its work without a central coordinator. This is more flexible but harder to debug because the flow of control is distributed. You need clear protocols for how agents discover and message each other.
-5. The **hierarchical** pattern adds layers of delegation. A top-level supervisor delegates to mid-level supervisors, who delegate to specialist agents. This works for very complex tasks where even the subtasks are too broad for a single agent. Think of a software project manager who delegates to a frontend lead and a backend lead, each of whom manages their own team of specialists.
-6. Regardless of the orchestration pattern, the key principle is the same. Each agent is small, focused, and independently testable. You can swap out the coding agent for a better one without touching the research agent. You can test the review agent in isolation by feeding it code samples.
+3. In the **supervisor** pattern, one agent acts as the coordinator. It receives the user request, decides which specialist agent should handle each part, delegates work, collects results, and assembles the final response.
+4. The **peer-to-peer** pattern lets agents communicate directly with each other. A coding agent might ask a research agent to look up an API specification, receive the answer, and continue its work without a central coordinator.
+5. The **hierarchical** pattern adds layers of delegation. A top-level supervisor delegates to mid-level supervisors, who delegate to specialist agents.
+6. Adapt the code template below to your specific requirements
+7. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -70,11 +90,13 @@ print(supervisor("Write a brief comparison of PostgreSQL vs. MySQL for a startup
 
 ## Verification Checklist
 
-- [ ] Verified: *Coordination overhead** is the most immediate risk. If agents spend more time communicating than working, you have created a bureaucracy, not a productive team. The supervisor becomes a bottleneck, reformulating messages and routing information. Keep the number of agents small and the interfaces between them clean.
-- [ ] Verified: *Lost context** happens when important information fails to transfer between agents. The research agent discovers a critical constraint, but the summary it passes to the coding agent omits that detail. Each handoff between agents is an opportunity for information loss. Be explicit about what information must flow between agents.
-- [ ] Verified: *Infinite delegation loops** occur when agents pass work back and forth without making progress. Agent A asks Agent B for clarification, Agent B asks Agent A for more context, and neither produces useful work. Set maximum iteration limits and include circuit breakers that escalate to a human when agents are stuck.
-- [ ] Verified: *Inconsistent outputs** arise when agents make conflicting assumptions. The frontend agent assumes a REST API while the backend agent builds a GraphQL endpoint. Without shared context about architectural decisions, agents will drift apart. A shared scratchpad or state document that all agents can read helps maintain consistency.
-- [ ] Verified: *Debugging becomes harder** because the execution path spans multiple agents. When the final output is wrong, you need to trace through several agents to find where things went off track. Good logging at every agent boundary is essential.
+- [ ] Verified: *Coordination overhead is the most immediate risk.
+- [ ] Verified: *Lost context happens when important information fails to transfer between agents.
+- [ ] Maximum iteration limit is set to prevent infinite loops
+- [ ] Verified: *Inconsistent outputs arise when agents make conflicting assumptions.
+- [ ] Monitoring and logging are configured for production debugging
+- [ ] Implementation follows the Multi-Agent Collaboration architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

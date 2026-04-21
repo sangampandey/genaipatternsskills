@@ -1,24 +1,36 @@
+---
+name: semantic-indexing
+description: >-
+  Implement the Semantic Indexing pattern (RAG). Replace keyword matching with vector embeddings to find documents by meaning rather than exact words, enabling semantic similarity search. Use when working with: embeddings, vectors, similarity, search.
+---
+
 # Semantic Indexing
 
-> Category: RAG | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/rag/semantic-indexing
+> Category: RAG | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/rag/semantic-indexing
 
 ## What This Pattern Solves
 
 **Semantic Indexing is** a pattern that converts documents into dense vector embeddings so retrieval can match on meaning rather than keywords. By encoding chunks into a shared embedding space with the query, it finds conceptually relevant passages even when they use completely different terminology.
 
+## When to Use This Skill
+
+Semantic indexing is the right choice when your users ask questions in natural language and your documents do not use the same vocabulary. This is nearly always the case for customer-facing search, where users describe their problems in their own words. It is also the right choice when your corpus spans multiple languages and you want a single unified search experience without maintaining separate indexes per language.
+
+It is worth reaching for whenever keyword search is producing too many empty result sets or low-quality matches. If you find yourself constantly tweaking synonym dictionaries and boost rules, that is a signal that you have outgrown keyword matching. Semantic indexing will not solve every retrieval problem, but it removes the class of failures caused by vocabulary mismatch.
+
 ## Architecture Rules
 
-- Embedding models convert text into dense numerical vectors, typically arrays of 384 to 1536 floating-point numbers. These vectors occupy a high-dimensional space where proximity corresponds to semantic similarity. Two pieces of text that mean roughly the same thing will end up near each other in this space, regardless of whether they share any words.
-- The indexing flow works like this: take each chunk from your document corpus and pass it through the embedding model. Store the resulting vector alongside the original text in a vector database. This is a one-time cost per chunk, though you need to re-embed when content changes.
-- The query flow mirrors this: take the user's question, pass it through the same embedding model to get a query vector, then find the nearest vectors in your index using a similarity metric like cosine distance. The chunks whose vectors are closest to the query vector are your retrieval results. This entire lookup is fast, typically single-digit milliseconds for databases with millions of vectors, because vector databases use approximate nearest neighbor algorithms optimized for this kind of search.
-- What makes this powerful is that the embedding model has learned, during its own training, that "cancel subscription" and "account termination" refer to similar concepts. The vectors it produces for these phrases will be close together. You get synonym handling, paraphrase handling, and even cross-lingual matching for free, without writing a single rule. The trade-off is that you are now dependent on the quality and biases of the embedding model itself.
+- Semantic indexing is the right choice when your users ask questions in natural language and your ...
+- It is worth reaching for whenever keyword search is producing too many empty result sets or low-q...
 
 ## Implementation Steps
 
-1. Embedding models convert text into dense numerical vectors, typically arrays of 384 to 1536 floating-point numbers. These vectors occupy a high-dimensional space where proximity corresponds to semantic similarity. Two pieces of text that mean roughly the same thing will end up near each other in this space, regardless of whether they share any words.
-2. The indexing flow works like this: take each chunk from your document corpus and pass it through the embedding model. Store the resulting vector alongside the original text in a vector database. This is a one-time cost per chunk, though you need to re-embed when content changes.
-3. The query flow mirrors this: take the user's question, pass it through the same embedding model to get a query vector, then find the nearest vectors in your index using a similarity metric like cosine distance. The chunks whose vectors are closest to the query vector are your retrieval results. This entire lookup is fast, typically single-digit milliseconds for databases with millions of vectors, because vector databases use approximate nearest neighbor algorithms optimized for this kind of search.
-4. What makes this powerful is that the embedding model has learned, during its own training, that "cancel subscription" and "account termination" refer to similar concepts. The vectors it produces for these phrases will be close together. You get synonym handling, paraphrase handling, and even cross-lingual matching for free, without writing a single rule. The trade-off is that you are now dependent on the quality and biases of the embedding model itself.
+1. Embedding models convert text into dense numerical vectors, typically arrays of 384 to 1536 floating-point numbers. These vectors occupy a high-dimensional space where proximity corresponds to semantic similarity.
+2. The indexing flow works like this: take each chunk from your document corpus and pass it through the embedding model. Store the resulting vector alongside the original text in a vector database.
+3. The query flow mirrors this: take the user's question, pass it through the same embedding model to get a query vector, then find the nearest vectors in your index using a similarity metric like cosine distance. The chunks whose vectors are closest to the query vector are your retrieval results.
+4. What makes this powerful is that the embedding model has learned, during its own training, that "cancel subscription" and "account termination" refer to similar concepts. The vectors it produces for these phrases will be close together.
+5. Adapt the code template below to your specific requirements
+6. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -51,10 +63,12 @@ def semantic_search(query: str, documents: list[str], top_k: int = 3):
 
 ## Verification Checklist
 
-- [ ] Verified: No most common mistake is using an embedding model that was not trained on text similar to your domain. General-purpose embedding models perform well on conversational text but may struggle with highly specialized content like legal contracts, medical literature, or source code. The vectors they produce for domain-specific jargon may not capture the relationships you need. Fine-tuning on domain data or choosing a domain-specific model helps, but adds complexity to the pipeline.
-- [ ] Verified: Dimensionality is a practical concern. Higher-dimensional embeddings (1536-d) capture more nuance but require more storage and compute for similarity search. Lower-dimensional embeddings (384-d) are cheaper but may conflate concepts that should remain distinct. Picking the right model and dimensionality involves testing on your actual queries, not trusting benchmark leaderboards.
-- [ ] Verified: Semantic drift is a subtler problem. Embedding models can place semantically unrelated texts near each other if they share surface-level patterns. A query about "Python exceptions" might retrieve chunks about snake species if the model is confused by the word "python." This is rare with good models but happens often enough that you should always inspect retrieval results during development. Relevance scoring thresholds and re-ranking can mitigate this.
-- [ ] Verified: Cold start is real. When you launch with a new embedding model and no user query logs, you have no way to validate that your vectors are actually capturing the right relationships for your use case. Building a small evaluation set of query-document pairs and measuring recall before going live is essential.
+- [ ] Verified: most common mistake is using an embedding model that was not trained on text similar to your domain.
+- [ ] Verified: Dimensionality is a practical concern.
+- [ ] Relevance filtering is in place — irrelevant results are filtered before reaching the model
+- [ ] Monitoring and logging are configured for production debugging
+- [ ] Implementation follows the Semantic Indexing architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

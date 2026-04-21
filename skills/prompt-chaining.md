@@ -1,24 +1,42 @@
+---
+name: prompt-chaining
+description: >-
+  Implement the Prompt Chaining pattern (Prompting). Break complex tasks into a sequence of focused prompts where each step's output feeds into the next for more reliable multi-step results. Use when working with: sequential, pipeline, decomposition, multi-step.
+---
+
 # Prompt Chaining
 
-> Category: Prompting | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/prompting/prompt-chaining
+> Category: Prompting | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/prompting/prompt-chaining
 
 ## What This Pattern Solves
 
 **Prompt Chaining is** a pattern that breaks a complex task into a sequence of simpler LLM calls, where each call's output feeds into the next call's input. This decomposition makes each step easier to debug, validate, and optimize independently.
 
+## When to Use This Skill
+
+The clearest signal is when you have a task with naturally separable stages. If you can draw a flowchart of the process with distinct boxes and arrows between them, prompt chaining is likely the right approach.
+
+Another strong signal is when different parts of the task have different reliability requirements. If extraction needs to be exhaustive but summarization can be lossy, separating them lets you tune each step independently. You might retry the extraction step if it looks incomplete without re-running the summarization.
+
+Prompt chaining also makes sense when you need deterministic control flow. If the second step should only run when the first step finds certain conditions, you need the ability to branch. A single prompt cannot conditionally skip parts of its own execution, but a pipeline can route outputs to different next steps based on intermediate results.
+
+Avoid prompt chaining for tasks that genuinely are atomic. If you are asking the model to translate a paragraph or answer a simple question, splitting it into steps adds latency and complexity for no benefit.
+
 ## Architecture Rules
 
-- Prompt chaining decomposes a complex task into a pipeline of simpler prompts. Each prompt handles one well-defined step. The output of one step becomes the input to the next. Instead of one prompt doing five things poorly, you have five prompts each doing one thing well.
-- Consider a content moderation pipeline. Step one extracts potentially problematic phrases from a piece of text. Step two classifies each phrase according to your policy categories. Step three decides on an overall action based on the classifications. Each step has a clear input, a clear output, and a focused instruction set. The model at each stage can dedicate its full attention to a single task.
-- The power of this approach goes beyond just splitting work. Because each step produces an explicit intermediate output, you get natural inspection points. You can look at the extracted phrases before classification happens. If the extraction missed something, you know exactly where the problem is. With a monolithic prompt, debugging means re-reading the entire output and guessing which part of the instruction the model mishandled.
-- There is another advantage that is easy to overlook. Different steps in your pipeline can use different models. A cheap, fast model might handle straightforward extraction while a more capable model handles nuanced classification. You can also add non-LLM steps into the chain. A database lookup, a rules-based filter, a formatting function. The chain does not need to be LLM calls all the way through.
+- clearest signal is when you have a task with naturally separable stages
+- Another strong signal is when different parts of the task have different reliability requirements
+- Prompt chaining also makes sense when you need deterministic control flow
+- Avoid prompt chaining for tasks that genuinely are atomic
 
 ## Implementation Steps
 
-1. Prompt chaining decomposes a complex task into a pipeline of simpler prompts. Each prompt handles one well-defined step. The output of one step becomes the input to the next. Instead of one prompt doing five things poorly, you have five prompts each doing one thing well.
-2. Consider a content moderation pipeline. Step one extracts potentially problematic phrases from a piece of text. Step two classifies each phrase according to your policy categories. Step three decides on an overall action based on the classifications. Each step has a clear input, a clear output, and a focused instruction set. The model at each stage can dedicate its full attention to a single task.
-3. The power of this approach goes beyond just splitting work. Because each step produces an explicit intermediate output, you get natural inspection points. You can look at the extracted phrases before classification happens. If the extraction missed something, you know exactly where the problem is. With a monolithic prompt, debugging means re-reading the entire output and guessing which part of the instruction the model mishandled.
-4. There is another advantage that is easy to overlook. Different steps in your pipeline can use different models. A cheap, fast model might handle straightforward extraction while a more capable model handles nuanced classification. You can also add non-LLM steps into the chain. A database lookup, a rules-based filter, a formatting function. The chain does not need to be LLM calls all the way through.
+1. Prompt chaining decomposes a complex task into a pipeline of simpler prompts. Each prompt handles one well-defined step.
+2. Consider a content moderation pipeline. Step one extracts potentially problematic phrases from a piece of text.
+3. The power of this approach goes beyond just splitting work. Because each step produces an explicit intermediate output, you get natural inspection points.
+4. There is another advantage that is easy to overlook. Different steps in your pipeline can use different models.
+5. Adapt the code template below to your specific requirements
+6. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -55,10 +73,12 @@ print(extract_then_summarize(article))
 
 ## Verification Checklist
 
-- [ ] Verified: Error propagation is the primary risk. A mistake in step one cascades through every subsequent step. If the extraction misses a key entity, the classification step will never see it, and the summary will be incomplete. Each step trusts the output of the previous step completely, so one weak link compromises the whole chain.
-- [ ] Verified: Format coupling between steps is a common source of bugs. Step one needs to output data in exactly the format step two expects. If the extraction step returns entities as a comma-separated list but the classification step expects JSON, the chain breaks silently. You end up spending significant effort on the interface contracts between steps.
-- [ ] Verified: Latency adds up. Each step is a separate API call with its own round-trip time. A five-step chain might take five times as long as a single prompt, and if any step needs retrying, it takes even longer. For user-facing applications, this cumulative latency can push response times past acceptable limits.
-- [ ] Verified: Context loss is another failure mode. Each step only sees its own input, not the full original context. If step three needs information from the original input that step one did not pass through, it is simply unavailable. You need to think carefully about what context each step requires and make sure it is carried forward.
+- [ ] Verified: Error propagation is the primary risk.
+- [ ] Verified: Format coupling between steps is a common source of bugs.
+- [ ] Latency impact is measured and within acceptable bounds
+- [ ] Verified: Context loss is another failure mode.
+- [ ] Implementation follows the Prompt Chaining architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

@@ -1,36 +1,55 @@
+---
+name: llm-as-judge
+description: >-
+  Implement the LLM-as-Judge pattern (Evaluation). Use an LLM with a custom scoring rubric to evaluate open-ended outputs at scale, replacing expensive human review with consistent automated grading. Use when working with: evaluation, scoring, rubric, quality.
+---
+
 # LLM-as-Judge
 
-> Category: Evaluation | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/evaluation/llm-as-judge
+> Category: Evaluation | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/evaluation/llm-as-judge
 
 ## What This Pattern Solves
 
 **LLM-as-Judge is** a pattern that uses one language model to evaluate the output quality of another. A judge model scores or ranks generated responses against criteria like relevance, factual accuracy, helpfulness, or safety, providing scalable evaluation without human annotators.
 
+## When to Use This Skill
+
+LLM-as-Judge is the right choice when you need to evaluate open-ended output at a scale that exceeds human bandwidth. If you are running prompt optimization over hundreds of examples, monitoring quality in production across thousands of requests, or comparing multiple model configurations, you need automated evaluation that understands semantics.
+
+It works well for multi-dimensional evaluation. A single output might need to be rated on accuracy, completeness, clarity, and tone separately. A rubric-based judge can provide scores on each dimension, giving you a granular quality profile rather than a single number.
+
+Use it when your evaluation criteria are stable enough to define in a rubric but too nuanced for simple metrics. "Is this summary factually accurate?" is too subtle for ROUGE but perfectly expressible as a rubric. "Does this response maintain a professional tone?" is inherently subjective but a well-anchored rubric can make the judgment consistent.
+
+Avoid LLM-as-Judge for tasks where exact-match or simple metrics work fine. If you can evaluate with string comparison, regular expressions, or unit tests, do that instead. Simpler evaluation is more reliable and cheaper.
+
 ## Architecture Rules
 
-- LLM-as-Judge uses a language model as the evaluator. You give it the output to evaluate, a rubric describing what good and bad look like, and it returns a score with an explanation. The model acts as a proxy for human judgment, applying the same kind of qualitative assessment that a person would, but at the speed and scale of an API call.
-- The rubric is the critical piece. A vague instruction like "rate this output from 1 to 5" produces inconsistent, unreliable scores. A well-designed rubric defines each score level with concrete anchor descriptions. What does a 5 look like? What specific qualities distinguish a 3 from a 4? The more precise your anchors, the more consistent the judge's scores will be.
-- There are three main approaches to building an LLM judge. The simplest is prompting: write a scoring prompt with your rubric and call it on each output. This is quick to set up but has some inconsistency. The second approach combines LLM scoring with outcome data. You collect the judge's scores alongside real-world signals like user satisfaction or task completion, and train a lightweight model that integrates both signals. The third approach fine-tunes a model on human expert annotations, creating a dedicated evaluation model that closely mimics expert judgment. Each approach trades setup effort for reliability.
-- The judge does not need to be the same model that generated the output. In fact, using a different model is often better. It avoids a subtle bias where models rate their own outputs more favorably than outputs from other models. A different model brings a different perspective and is less likely to share the same blind spots as the generator.
+- LLM-as-Judge is the right choice when you need to evaluate open-ended output at a scale that exce...
+- It works well for multi-dimensional evaluation
+- it when your evaluation criteria are stable enough to define in a rubric but too nuanced for simp...
+- Avoid LLM-as-Judge for tasks where exact-match or simple metrics work fine
 
 ## Implementation Steps
 
-1. LLM-as-Judge uses a language model as the evaluator. You give it the output to evaluate, a rubric describing what good and bad look like, and it returns a score with an explanation. The model acts as a proxy for human judgment, applying the same kind of qualitative assessment that a person would, but at the speed and scale of an API call.
-2. The rubric is the critical piece. A vague instruction like "rate this output from 1 to 5" produces inconsistent, unreliable scores. A well-designed rubric defines each score level with concrete anchor descriptions. What does a 5 look like? What specific qualities distinguish a 3 from a 4? The more precise your anchors, the more consistent the judge's scores will be.
-3. There are three main approaches to building an LLM judge. The simplest is prompting: write a scoring prompt with your rubric and call it on each output. This is quick to set up but has some inconsistency. The second approach combines LLM scoring with outcome data. You collect the judge's scores alongside real-world signals like user satisfaction or task completion, and train a lightweight model that integrates both signals. The third approach fine-tunes a model on human expert annotations, creating a dedicated evaluation model that closely mimics expert judgment. Each approach trades setup effort for reliability.
-4. The judge does not need to be the same model that generated the output. In fact, using a different model is often better. It avoids a subtle bias where models rate their own outputs more favorably than outputs from other models. A different model brings a different perspective and is less likely to share the same blind spots as the generator.
+1. LLM-as-Judge uses a language model as the evaluator. You give it the output to evaluate, a rubric describing what good and bad look like, and it returns a score with an explanation.
+2. The rubric is the critical piece. A vague instruction like "rate this output from 1 to 5" produces inconsistent, unreliable scores.
+3. There are three main approaches to building an LLM judge. The simplest is prompting: write a scoring prompt with your rubric and call it on each output.
+4. The judge does not need to be the same model that generated the output. In fact, using a different model is often better.
+5. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
-See the full pattern page for code examples: genaipatterns.dev/patterns/evaluation/llm-as-judge
+See the full pattern page for code examples: https://www.genaipatterns.dev/patterns/evaluation/llm-as-judge
 
 ## Verification Checklist
 
-- [ ] Verified: Leniency bias is the most well-documented problem. LLM judges tend to give higher scores than human evaluators would. They are reluctant to give low ratings and will often find something positive to say about even mediocre outputs. You can mitigate this with rubric design, explicitly describing what a low score looks like and including negative examples, but the bias never fully disappears.
-- [ ] Verified: Self-preference bias occurs when the judge model evaluates outputs from the same model family. The judge tends to prefer outputs that match its own generation style, regardless of actual quality. Using a different model family for judging helps, but introduces its own stylistic biases.
-- [ ] Verified: Positional bias affects pairwise comparisons. When you ask a judge to compare two outputs, the order in which they appear in the prompt influences the verdict. Output A presented first might win when presented second it loses. The standard mitigation is to evaluate both orderings and check for consistency, but this doubles the cost.
-- [ ] Verified: Rubric drift is a subtle problem. As your application evolves and your understanding of quality changes, the rubric can become misaligned with what you actually care about. The judge keeps faithfully scoring against the old criteria while your real quality bar has shifted. Regular rubric reviews and recalibration against fresh human annotations catch this before it becomes a problem.
-- [ ] Verified: Calibration across score levels is rarely uniform. The judge might reliably distinguish excellent from terrible output but struggle to differentiate between good and very good. If your decisions depend on fine-grained distinctions in the middle of the scale, test calibration carefully at those levels.
+- [ ] Verified: Leniency bias is the most well-documented problem.
+- [ ] Verified: Self-preference bias occurs when the judge model evaluates outputs from the same model family.
+- [ ] Cost per request is estimated and within budget
+- [ ] Verified: Rubric drift is a subtle problem.
+- [ ] Verified: Calibration across score levels is rarely uniform.
+- [ ] Implementation follows the LLM-as-Judge architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

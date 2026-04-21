@@ -1,30 +1,53 @@
+---
+name: cascading
+description: >-
+  Implement the Cascading pattern (Routing & Orchestration). Try cheaper models first and escalate to more capable ones only when confidence is low, reducing costs while maintaining output quality. Use when working with: fallback, escalation, cost-optimization, confidence.
+---
+
 # Cascading
 
-> Category: Routing & Orchestration | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/routing/cascading
+> Category: Routing & Orchestration | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/routing/cascading
 
 ## What This Pattern Solves
 
 **Cascading is** a pattern that tries a cheaper or faster model first and only escalates to a more expensive model if the initial response fails a quality check. It reduces average cost and latency by handling easy queries with lightweight models.
 
+## When to Use This Skill
+
+Cascading works best when the cost difference between model tiers is significant and most of your traffic can be handled by cheap models.
+
+Strong indicators:
+
+- Your query distribution is heavy-tailed, lots of simple queries and a smaller number of hard ones
+- The cost difference between your cheapest and most expensive model is 10x or more
+- You can tolerate slightly higher latency on hard queries (they go through multiple tiers) in exchange for much lower latency on easy ones
+- You have a reasonable way to assess response quality without human review
+- Your application can handle the occasional retry transparently without confusing the user
+
+Weaker indicators:
+
+- Almost all your queries require the most capable model
+- The latency of retrying through multiple tiers is unacceptable
+- You cannot build a reliable quality gate for your domain
+- The cost difference between model tiers is small
+
 ## Architecture Rules
 
-- Cascading takes a fundamentally different approach from upfront routing. Instead of deciding which model to use before generating a response, you start with the cheapest model and evaluate the result. If the result passes a quality gate, you return it. If it does not, you escalate to the next model tier and try again.
-- Picture it as a series of attempts. The first tier is a small, fast, cheap model. It generates a response. A quality gate evaluates that response. Did the model express uncertainty? Are the logprobs below a confidence threshold? Does a quick consistency check pass? If yes, the response ships. If no, the query moves to the next tier.
-- The second tier is a mid-range model. Same process. Generate, evaluate, decide. If this tier passes the quality gate, done. If not, escalate to the premium tier. The premium tier is your safety net, the most capable model you have access to. Its response goes to the user regardless of quality gate results (though you might flag low-confidence responses for human review).
-- The quality gate is the critical component. There are several approaches to implementing it.
-- **Logprob-based gates** look at the model's own confidence in its output. If the average token probability is below a threshold, the model was uncertain and escalation is warranted. This is cheap to compute because logprobs come back with the generation itself. The downside is that models can be confidently wrong, high logprobs do not guarantee correctness.
-- **Self-check gates** ask the model to evaluate its own response. "Are you confident in this answer? Rate your confidence from 1 to 5." This uses an additional cheap LLM call but can catch some cases where the model was wrong despite high token probabilities. The model's self-assessment is imperfect but useful as one signal among several.
-- **LLM-as-Judge gates** use a separate model (often the same cheap tier) to evaluate the response. "Does this response fully answer the question? Is it factually consistent?" This is more expensive than logprobs but more robust than self-assessment.
-- **Deterministic gates** apply hard rules. If the response contains "I am not sure" or "I do not have enough information," escalate. If the response is suspiciously short for a question that should require a detailed answer, escalate. Simple but effective for catching obvious failures.
+- Cascading works best when the cost difference between model tiers is significant
+- Strong indicators:
+- Your query distribution is heavy-tailed, lots of simple queries and a smaller nu
+- cost difference between your cheapest and most expensive model is 10x or mor
+- You can tolerate slightly higher latency on hard queries (they go through multip
 
 ## Implementation Steps
 
-1. Cascading takes a fundamentally different approach from upfront routing. Instead of deciding which model to use before generating a response, you start with the cheapest model and evaluate the result. If the result passes a quality gate, you return it. If it does not, you escalate to the next model tier and try again.
-2. Picture it as a series of attempts. The first tier is a small, fast, cheap model. It generates a response. A quality gate evaluates that response. Did the model express uncertainty? Are the logprobs below a confidence threshold? Does a quick consistency check pass? If yes, the response ships. If no, the query moves to the next tier.
-3. The second tier is a mid-range model. Same process. Generate, evaluate, decide. If this tier passes the quality gate, done. If not, escalate to the premium tier. The premium tier is your safety net, the most capable model you have access to. Its response goes to the user regardless of quality gate results (though you might flag low-confidence responses for human review).
+1. Cascading takes a fundamentally different approach from upfront routing. Instead of deciding which model to use before generating a response, you start with the cheapest model and evaluate the result.
+2. Picture it as a series of attempts. The first tier is a small, fast, cheap model.
+3. The second tier is a mid-range model. Same process.
 4. The quality gate is the critical component. There are several approaches to implementing it.
-5. *Logprob-based gates** look at the model's own confidence in its output. If the average token probability is below a threshold, the model was uncertain and escalation is warranted. This is cheap to compute because logprobs come back with the generation itself. The downside is that models can be confidently wrong, high logprobs do not guarantee correctness.
-6. *Self-check gates** ask the model to evaluate its own response. "Are you confident in this answer? Rate your confidence from 1 to 5." This uses an additional cheap LLM call but can catch some cases where the model was wrong despite high token probabilities. The model's self-assessment is imperfect but useful as one signal among several.
+5. *Logprob-based gates** look at the model's own confidence in its output. If the average token probability is below a threshold, the model was uncertain and escalation is warranted.
+6. Adapt the code template below to your specific requirements
+7. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -72,11 +95,13 @@ print(result["answer"])
 
 ## Verification Checklist
 
-- [ ] Verified: *Quality gates that are too lenient.** If the gate lets bad responses through, users get low-quality answers and you lose trust. A lenient gate saves money but at the cost of output quality. Err on the side of escalating too often during initial deployment, then tighten the gate as you gather data on what the cheap model handles well.
-- [ ] Verified: *Quality gates that are too strict.** The opposite problem. If the gate escalates almost everything, you are paying for the cheap model's generation plus the expensive model's generation on most queries. Total cost is higher than just using the expensive model directly. Monitor your escalation rate. If it exceeds 50 to 60%, your cheap model is not capable enough or your gate is too aggressive.
-- [ ] Verified: *Latency stacking.** Each tier adds latency. If a query falls through all tiers, the total response time is the sum of all generations plus all quality evaluations. For interactive applications, this cumulative latency can be unacceptable. Set a maximum number of tiers (three is typical) and consider parallel generation for the first two tiers if latency is critical.
-- [ ] Verified: *Confidently wrong cheap models.** Some small models produce plausible but incorrect answers with high confidence. Logprob-based gates will not catch these because the model's token probabilities are high. This is the hardest failure mode to detect. LLM-as-Judge gates help but add cost. Domain-specific checks (like verifying calculations or checking facts against a database) are more reliable when available.
-- [ ] Verified: *Inconsistent user experience across escalation levels.** Different models have different writing styles, different levels of detail, and different formatting preferences. Users might notice that some responses feel different from others. If consistency matters, consider post-processing all responses through a formatting step regardless of which tier generated them.
+- [ ] Cost per request is estimated and within budget
+- [ ] Monitoring and logging are configured for production debugging
+- [ ] Latency impact is measured and within acceptable bounds
+- [ ] Verified: *Confidently wrong cheap models.
+- [ ] Verified: *Inconsistent user experience across escalation levels.
+- [ ] Implementation follows the Cascading architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

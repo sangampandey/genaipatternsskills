@@ -1,36 +1,60 @@
+---
+name: code-execution
+description: >-
+  Implement the Code Execution pattern (Agents). Let LLMs generate and execute code in sandboxed environments for tasks requiring computational precision like data analysis and visualization. Use when working with: sandbox, code-generation, sql, visualization.
+---
+
 # Code Execution
 
-> Category: Agents | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/agents/code-execution
+> Category: Agents | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/agents/code-execution
 
 ## What This Pattern Solves
 
 **Code Execution is** a pattern that lets an LLM write and run code in a sandboxed environment during inference. Instead of reasoning about computations in natural language, the model generates executable code, runs it, and incorporates the output into its response.
 
+## When to Use This Skill
+
+Use Code Execution when the task involves computation, data transformation, or artifact generation that an LLM cannot reliably do through text generation alone.
+
+Specific signals that this pattern fits well:
+
+- The user needs a chart, graph, or visualization as output
+- The task involves numerical computation where precision matters (financial calculations, statistics, simulations)
+- You need to query structured data in a database
+- The output is a file (PDF report, CSV export, image) rather than plain text
+- The problem involves iterative data manipulation, things like filtering, grouping, pivoting, and aggregating a dataset
+
+If the task is purely about generating or transforming text, you probably do not need this. If the task requires interacting with external APIs or services, tool calling might be a better fit. Code Execution shines when the LLM needs to leverage a programming language runtime to produce results it cannot produce through token generation.
+
 ## Architecture Rules
 
-- The Code Execution pattern splits the work into two distinct phases. First, the LLM generates code that solves the problem. Second, a sandboxed runtime executes that code and returns the results. The LLM acts as the programmer. The sandbox acts as the computer.
-- Think of it as giving the model a scratch pad that actually runs. When a user asks "show me a scatter plot of revenue vs. headcount for these 50 companies," the LLM writes a Python script using Matplotlib or Plotly, the sandbox executes it, and the rendered image comes back to the user. The model never tries to draw the chart itself. It writes the instructions and lets a real interpreter do the work.
-- The sandbox is critical. You are executing LLM-generated code, which means you are executing code you did not write and did not review. The sandbox constrains what that code can do. No filesystem access beyond a temporary working directory. No network calls unless explicitly allowed. Resource limits on CPU time and memory. This is not optional. Running untrusted code without isolation is a security incident waiting to happen.
-- This pattern works with many target languages. Python is the most common because of its ecosystem for data science and visualization. SQL is another natural fit, where the LLM writes a query and the sandbox executes it against a database connection. Graphviz DOT notation lets the model describe graph structures that get rendered into diagrams. The key insight is that the LLM does not need to understand rendering pipelines or database internals. It just needs to produce syntactically correct code in the target language.
+- Code Execution when the task involves computation, data transformation, or a
+- Specific signals that this pattern fits well:
+- user needs a chart, graph, or visualization as output
+- task involves numerical computation where precision matters (financial calcu
+- You need to query structured data in a database
 
 ## Implementation Steps
 
-1. The Code Execution pattern splits the work into two distinct phases. First, the LLM generates code that solves the problem. Second, a sandboxed runtime executes that code and returns the results. The LLM acts as the programmer. The sandbox acts as the computer.
-2. Think of it as giving the model a scratch pad that actually runs. When a user asks "show me a scatter plot of revenue vs. headcount for these 50 companies," the LLM writes a Python script using Matplotlib or Plotly, the sandbox executes it, and the rendered image comes back to the user. The model never tries to draw the chart itself. It writes the instructions and lets a real interpreter do the work.
-3. The sandbox is critical. You are executing LLM-generated code, which means you are executing code you did not write and did not review. The sandbox constrains what that code can do. No filesystem access beyond a temporary working directory. No network calls unless explicitly allowed. Resource limits on CPU time and memory. This is not optional. Running untrusted code without isolation is a security incident waiting to happen.
-4. This pattern works with many target languages. Python is the most common because of its ecosystem for data science and visualization. SQL is another natural fit, where the LLM writes a query and the sandbox executes it against a database connection. Graphviz DOT notation lets the model describe graph structures that get rendered into diagrams. The key insight is that the LLM does not need to understand rendering pipelines or database internals. It just needs to produce syntactically correct code in the target language.
+1. The Code Execution pattern splits the work into two distinct phases. First, the LLM generates code that solves the problem.
+2. Think of it as giving the model a scratch pad that actually runs. When a user asks "show me a scatter plot of revenue vs.
+3. The sandbox is critical. You are executing LLM-generated code, which means you are executing code you did not write and did not review.
+4. This pattern works with many target languages. Python is the most common because of its ecosystem for data science and visualization.
+5. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
-See the full pattern page for code examples: genaipatterns.dev/patterns/agents/code-execution
+See the full pattern page for code examples: https://www.genaipatterns.dev/patterns/agents/code-execution
 
 ## Verification Checklist
 
-- [ ] Verified: No most common failure is generated code that does not run. Syntax errors, missing imports, incorrect API usage. The LLM might reference a library function that does not exist or pass arguments in the wrong order. This is especially common with less popular libraries where the model has seen fewer training examples.
-- [ ] Verified: A subtler problem is code that runs but produces wrong results. The LLM might write a SQL query that returns data but applies the wrong join condition, giving you plausible looking numbers that are quietly incorrect. Unlike a runtime error, this failure mode is silent.
-- [ ] Verified: Security is the big risk. If your sandbox has gaps, generated code could read sensitive files, make network requests to exfiltrate data, or consume excessive resources. Some teams have learned this the hard way by running LLM-generated code in a standard Docker container without resource limits, only to have a while-true loop consume all available CPU.
-- [ ] Verified: There is also the latency consideration. Spinning up a sandbox, executing code, and returning results adds time compared to a direct LLM response. For interactive applications, this delay can feel sluggish if you are not careful about sandbox warm-up and pooling.
-- [ ] Verified: Over-reliance on code execution for tasks where simpler approaches work is another anti-pattern. If the user asks "what is 15% of 200," generating and executing a Python script is overkill. A tool call to a calculator or even the LLM doing the arithmetic directly would be faster and cheaper.
+- [ ] Verified: most common failure is generated code that does not run.
+- [ ] Errors are handled gracefully with appropriate fallbacks
+- [ ] Maximum iteration limit is set to prevent infinite loops
+- [ ] Latency impact is measured and within acceptable bounds
+- [ ] Verified: Over-reliance on code execution for tasks where simpler approaches work is another anti-pattern.
+- [ ] Implementation follows the Code Execution architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

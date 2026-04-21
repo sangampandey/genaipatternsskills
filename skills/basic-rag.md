@@ -1,26 +1,37 @@
+---
+name: basic-rag
+description: >-
+  Implement the Basic RAG pattern (RAG). Ground LLM responses in external knowledge by retrieving relevant documents before generation to reduce hallucinations and stay current. Use when working with: retrieval, grounding, knowledge, context.
+---
+
 # Basic RAG
 
-> Category: RAG | Difficulty: beginner | Pattern: genaipatterns.dev/patterns/rag/basic-rag
+> Category: RAG | Difficulty: beginner | Reference: https://www.genaipatterns.dev/patterns/rag/basic-rag
 
 ## What This Pattern Solves
 
 **Basic RAG (Retrieval-Augmented Generation) is** a design pattern that grounds LLM responses in external knowledge by retrieving relevant documents at query time and injecting them into the prompt. It solves the hallucination problem by giving the model factual source material instead of relying on training data alone.
 
+## When to Use This Skill
+
+Use basic RAG when you have a corpus of documents that contains the answers your users need, and the language model does not have access to that information through its training data. This covers most enterprise knowledge base scenarios: internal documentation search, customer support bots grounded in help articles, legal research over case files, medical reference systems over clinical guidelines.
+
+The pattern works well when your latency budget can tolerate the retrieval step, which typically adds 100 to 500 milliseconds depending on your index. It also works best when the answers exist somewhere in your documents. RAG is not a reasoning pattern. If the answer requires multi-step inference that is not spelled out in any single document, basic RAG will struggle. You will need more advanced patterns like chain-of-thought prompting on top of retrieval for those cases.
+
 ## Architecture Rules
 
-- RAG splits the work into two separate pipelines that run at different times.
-- The first is the indexing pipeline. You take your document corpus, whatever it may be (PDFs, Markdown files, database rows, Confluence pages), and break it into smaller chunks. Each chunk should be a self-contained unit of information, typically a few hundred tokens. You then store these chunks in a searchable index. In the simplest version this could be a full-text search engine. In more advanced setups you would use vector embeddings, but the basic pattern does not require them.
-- The second is the query pipeline. When a user asks a question, you first send that question to the search index and retrieve the top-k most relevant chunks. You then construct a prompt that includes both the user question and the retrieved chunks as context. The language model generates its answer based on this assembled context rather than relying on its parametric memory alone.
-- The key insight is that the model is no longer guessing. It has the source material right there in its context window. The quality of the generated answer depends heavily on the quality of what you retrieved. If you retrieve the right passages, the model will synthesize a good answer. If you retrieve irrelevant noise, the model will either ignore it or weave it into a misleading response.
-- This two-stage approach also gives you an audit trail. You can show users which documents were used to generate the answer. You can log retrieval results separately from generation results. You can debug failures by asking: was the retrieval bad, or was the generation bad? That separation of concerns makes the system much easier to operate.
+- basic RAG when you have a corpus of documents that contains the answers your users need, and the ...
+- pattern works well when your latency budget can tolerate the retrieval step, which typically adds...
 
 ## Implementation Steps
 
 1. RAG splits the work into two separate pipelines that run at different times.
-2. The first is the indexing pipeline. You take your document corpus, whatever it may be (PDFs, Markdown files, database rows, Confluence pages), and break it into smaller chunks. Each chunk should be a self-contained unit of information, typically a few hundred tokens. You then store these chunks in a searchable index. In the simplest version this could be a full-text search engine. In more advanced setups you would use vector embeddings, but the basic pattern does not require them.
-3. The second is the query pipeline. When a user asks a question, you first send that question to the search index and retrieve the top-k most relevant chunks. You then construct a prompt that includes both the user question and the retrieved chunks as context. The language model generates its answer based on this assembled context rather than relying on its parametric memory alone.
-4. The key insight is that the model is no longer guessing. It has the source material right there in its context window. The quality of the generated answer depends heavily on the quality of what you retrieved. If you retrieve the right passages, the model will synthesize a good answer. If you retrieve irrelevant noise, the model will either ignore it or weave it into a misleading response.
-5. This two-stage approach also gives you an audit trail. You can show users which documents were used to generate the answer. You can log retrieval results separately from generation results. You can debug failures by asking: was the retrieval bad, or was the generation bad? That separation of concerns makes the system much easier to operate.
+2. The first is the indexing pipeline. You take your document corpus, whatever it may be (PDFs, Markdown files, database rows, Confluence pages), and break it into smaller chunks.
+3. The second is the query pipeline. When a user asks a question, you first send that question to the search index and retrieve the top-k most relevant chunks.
+4. The key insight is that the model is no longer guessing. It has the source material right there in its context window.
+5. This two-stage approach also gives you an audit trail. You can show users which documents were used to generate the answer.
+6. Adapt the code template below to your specific requirements
+7. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -62,9 +73,11 @@ Question: {query}"""
 
 ## Verification Checklist
 
-- [ ] Verified: Chunk size is the first thing people get wrong. If your chunks are too large, you waste context window space on irrelevant surrounding text and risk pushing out other relevant chunks. If your chunks are too small, each chunk lacks enough context to be useful on its own. A chunk that says "see the table above" is worthless when the table is in a different chunk. Finding the right granularity takes experimentation, and the optimal size varies by document type.
-- [ ] Verified: No second failure mode is poor relevance filtering. If your retrieval returns ten chunks but only two are relevant, the other eight are noise that the model must wade through. Worse, the model may anchor on an irrelevant chunk and produce a wrong answer with high confidence. Setting a relevance threshold (a minimum similarity score below which you discard results) helps, but calibrating that threshold is tricky.
-- [ ] Verified: Context window overflow is the third risk. If you stuff too many retrieved chunks into the prompt, you hit the model's token limit and either truncate content or fail entirely. Even before hitting hard limits, models tend to lose track of information buried in the middle of very long contexts. Keeping retrieved context focused and concise matters more than volume.
+- [ ] Chunk size is tuned — not too large (wastes context) or too small (loses meaning)
+- [ ] Relevance filtering is in place — irrelevant results are filtered before reaching the model
+- [ ] Context window usage is managed — retrieved content fits within model limits
+- [ ] Implementation follows the Basic RAG architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

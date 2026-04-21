@@ -1,40 +1,66 @@
+---
+name: semantic-router
+description: >-
+  Implement the Semantic Router pattern (Routing & Orchestration). Classify query intent using embeddings and route to the appropriate handler, tool, or agent pipeline without relying on keyword rules. Use when working with: intent, embeddings, classification, dispatch.
+---
+
 # Semantic Router
 
-> Category: Routing & Orchestration | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/routing/semantic-router
+> Category: Routing & Orchestration | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/routing/semantic-router
 
 ## What This Pattern Solves
 
 **Semantic Router is** a pattern that classifies incoming queries by meaning and routes them to the appropriate handler, model, or pipeline. It uses embedding similarity to match queries against predefined route descriptions, enabling intent-based routing without keyword rules.
 
+## When to Use This Skill
+
+Semantic routing works well when you have a known set of intent categories and need to classify incoming requests quickly and cheaply.
+
+Good fit:
+
+- Your application handles multiple distinct types of requests that require different processing paths
+- You need sub-100ms routing decisions at scale
+- The intent categories are relatively stable and well-defined
+- You can provide 5 to 20 good example utterances per route
+- Cost per request matters and you want to avoid an LLM call for every classification
+
+Less ideal:
+
+- Your intent categories overlap heavily and even humans would struggle to classify some messages
+- You have hundreds of fine-grained intent categories (embedding similarity becomes less discriminative)
+- The intent categories change frequently, requiring constant recomputation of route vectors
+- The routing decision depends on conversation history, not just the current message
+
 ## Architecture Rules
 
-- Semantic routing uses embedding models to classify intent based on meaning rather than keywords. The core insight is that text with similar meaning produces similar embedding vectors, and you can measure that similarity cheaply and quickly.
-- Here is how it works. You define a set of routes, where each route represents an intent category. For each route, you create a few example utterances that capture what a user might say when they have that intent. You compute the embedding vectors for all these example utterances and store them.
-- When a new user message arrives, you compute its embedding vector and compare it against all the stored route vectors using cosine similarity. The route with the highest similarity score wins. The message gets dispatched to the handler, tool, or agent pipeline associated with that route.
-- This approach is fast because embedding models are much cheaper and faster than generative models. A typical embedding computation takes single-digit milliseconds, compared to hundreds of milliseconds or seconds for an LLM classification call. At scale, this difference is substantial.
-- The quality of routing depends heavily on the example utterances you provide for each route. These utterances define the "semantic territory" of each route. If your billing route examples only cover invoice questions, a user asking about payment methods might not match well. Spend time crafting diverse examples that cover the range of ways users express each intent.
-- You can also use a hybrid approach. Define a confidence threshold for the semantic router. If the highest similarity score exceeds the threshold, route directly. If it falls below, escalate to an LLM for more careful classification. This gives you the speed of embeddings for clear-cut cases and the intelligence of an LLM for ambiguous ones.
+- Semantic routing works well when you have a known set of intent categories and n
+- Good fit:
+- Your application handles multiple distinct types of requests that require differ
+- You need sub-100ms routing decisions at scale
+- intent categories are relatively stable and well-defined
 
 ## Implementation Steps
 
 1. Semantic routing uses embedding models to classify intent based on meaning rather than keywords. The core insight is that text with similar meaning produces similar embedding vectors, and you can measure that similarity cheaply and quickly.
-2. Here is how it works. You define a set of routes, where each route represents an intent category. For each route, you create a few example utterances that capture what a user might say when they have that intent. You compute the embedding vectors for all these example utterances and store them.
-3. When a new user message arrives, you compute its embedding vector and compare it against all the stored route vectors using cosine similarity. The route with the highest similarity score wins. The message gets dispatched to the handler, tool, or agent pipeline associated with that route.
-4. This approach is fast because embedding models are much cheaper and faster than generative models. A typical embedding computation takes single-digit milliseconds, compared to hundreds of milliseconds or seconds for an LLM classification call. At scale, this difference is substantial.
-5. The quality of routing depends heavily on the example utterances you provide for each route. These utterances define the "semantic territory" of each route. If your billing route examples only cover invoice questions, a user asking about payment methods might not match well. Spend time crafting diverse examples that cover the range of ways users express each intent.
-6. You can also use a hybrid approach. Define a confidence threshold for the semantic router. If the highest similarity score exceeds the threshold, route directly. If it falls below, escalate to an LLM for more careful classification. This gives you the speed of embeddings for clear-cut cases and the intelligence of an LLM for ambiguous ones.
+2. Here is how it works. You define a set of routes, where each route represents an intent category.
+3. When a new user message arrives, you compute its embedding vector and compare it against all the stored route vectors using cosine similarity. The route with the highest similarity score wins.
+4. This approach is fast because embedding models are much cheaper and faster than generative models. A typical embedding computation takes single-digit milliseconds, compared to hundreds of milliseconds or seconds for an LLM classification call.
+5. The quality of routing depends heavily on the example utterances you provide for each route. These utterances define the "semantic territory" of each route.
+6. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
-See the full pattern page for code examples: genaipatterns.dev/patterns/routing/semantic-router
+See the full pattern page for code examples: https://www.genaipatterns.dev/patterns/routing/semantic-router
 
 ## Verification Checklist
 
-- [ ] Verified: *Overlapping intent categories.** If "billing support" and "account management" share a lot of semantic territory, the router will struggle to distinguish between them. Messages like "I need to update my payment information" could reasonably belong to either. When categories overlap, you get inconsistent routing that frustrates users. The fix is either to merge overlapping categories or to make the example utterances more distinctive.
-- [ ] Verified: *Poor example utterances.** If your examples are too narrow or too similar to each other, the route's semantic territory will be small and many valid user messages will not match well. If your examples are too broad or generic, different routes will overlap. Good examples are diverse in phrasing but consistent in intent.
-- [ ] Verified: *Embedding model limitations.** Not all embedding models handle all types of text equally well. Some perform poorly on short messages, others on domain-specific jargon. The embedding model you choose will have blind spots. Test with real user messages, not just the clean examples you crafted during development.
-- [ ] Verified: *Missing intent categories.** If a user's message does not match any route well, the router will still pick the closest one, which will be wrong. You need an "other" or "unknown" category with a confidence threshold below which the message gets sent to a fallback handler rather than forced into an ill-fitting route.
-- [ ] Verified: *Static routes in a dynamic world.** User behavior evolves. New product features create new intent categories. If your routes are defined once and never updated, the router gradually becomes less accurate. Build a review process that periodically checks routing accuracy against real traffic and updates routes as needed.
+- [ ] Verified: *Overlapping intent categories.
+- [ ] Verified: *Poor example utterances.
+- [ ] Verified: *Embedding model limitations.
+- [ ] Verified: *Missing intent categories.
+- [ ] Verified: *Static routes in a dynamic world.
+- [ ] Implementation follows the Semantic Router architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

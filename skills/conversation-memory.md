@@ -1,28 +1,46 @@
+---
+name: conversation-memory
+description: >-
+  Implement the Conversation Memory pattern (Memory & State). Manage conversation state across turns using sliding windows, summaries, or entity tracking strategies to maintain coherent multi-turn dialogue. Use when working with: conversation, history, sliding-window, summarization.
+---
+
 # Conversation Memory
 
-> Category: Memory & State | Difficulty: beginner | Pattern: genaipatterns.dev/patterns/memory/conversation-memory
+> Category: Memory & State | Difficulty: beginner | Reference: https://www.genaipatterns.dev/patterns/memory/conversation-memory
 
 ## What This Pattern Solves
 
 **Conversation Memory is** a pattern that maintains context across multiple turns of a dialogue by storing and retrieving previous messages. It solves the statelessness of LLM APIs by explicitly managing conversation history, summarization, and context window limits.
 
+## When to Use This Skill
+
+Every conversational LLM application needs some form of conversation memory. The question is which strategy fits your use case.
+
+Start with full history if your conversations are typically short (total history stays under roughly 20% of your model's context window) and your context window is large. Do not over-engineer memory management for conversations that will never hit the limit.
+
+Use a sliding window when recency is what matters. Customer support chats where each question is relatively self-contained, coding assistants where the current task is all that matters, and casual chatbots all work well with a window of the last 5-10 turns.
+
+Use summary memory when conversations are long and the early context stays relevant. Consulting sessions, tutoring interactions, and project planning conversations all benefit from maintaining a compressed record of what was discussed earlier.
+
+Use entity memory when your application revolves around tracking specific objects or people. CRM assistants, project management tools, and relationship management applications need to know facts about entities rather than the flow of conversation.
+
 ## Architecture Rules
 
-- Conversation memory is the set of techniques for deciding which parts of the conversation history to include in each API call. There are several strategies, each with distinct characteristics.
-- **Full history** is the simplest approach. Include every message from the conversation in every request. This preserves complete context and is the right choice for short conversations where you will never approach the context limit. Most prototypes start here. The ceiling is obvious: eventually the history exceeds the context window and you need to truncate anyway. But for conversations where total history stays under roughly 20% of your model's context window (about 15-20 turns for a typical 128K-token model), full history is perfectly adequate and the simplest thing that works.
-- **Sliding window** keeps only the most recent N turns. Older messages are dropped. This guarantees a fixed context size and works well for applications where recent context matters more than distant history. A coding assistant that helps you debug step by step mostly needs the last few exchanges. What you discussed 50 turns ago is rarely relevant to the current error message. The downside is abrupt information loss. If the user stated a critical constraint in turn 3 and you are now on turn 25 with a window of 10, that constraint is gone.
-- **Summary memory** periodically compresses older turns into a condensed summary. You keep the recent turns in full and prepend a summary of everything that came before. When the history grows beyond a threshold, you ask the model to summarize the oldest unsummarized turns and replace them with that summary. The summary preserves the gist of earlier conversation while using far fewer tokens. This is more sophisticated than a sliding window because important information from early turns can survive in compressed form.
-- **Entity memory** takes a structured approach. Instead of summarizing the conversation as prose, you extract and maintain a running record of entities mentioned, their attributes, and relationships. The user mentioned they work at Acme Corp on the billing team and their manager is Sarah. These facts get stored as structured entries and injected into the context as a factsheet, independent of the conversation turns. This works well when the conversation revolves around specific entities (people, projects, products) and you need to track evolving facts about them.
-- **Hybrid approaches** combine multiple strategies. A common production setup uses summary memory for older turns, full history for the most recent turns, and entity memory for key facts. The summary provides general context. The recent turns provide conversational flow. The entity facts ensure critical details are not lost.
+- Every conversational LLM application needs some form of conversation memory
+- Start with full history if your conversations are typically short (total history stays under roug...
+- a sliding window when recency is what matters
+- summary memory when conversations are long and the early context stays relevant
+- entity memory when your application revolves around tracking specific objects or people
 
 ## Implementation Steps
 
 1. Conversation memory is the set of techniques for deciding which parts of the conversation history to include in each API call. There are several strategies, each with distinct characteristics.
-2. *Full history** is the simplest approach. Include every message from the conversation in every request. This preserves complete context and is the right choice for short conversations where you will never approach the context limit. Most prototypes start here. The ceiling is obvious: eventually the history exceeds the context window and you need to truncate anyway. But for conversations where total history stays under roughly 20% of your model's context window (about 15-20 turns for a typical 128K-token model), full history is perfectly adequate and the simplest thing that works.
-3. *Sliding window** keeps only the most recent N turns. Older messages are dropped. This guarantees a fixed context size and works well for applications where recent context matters more than distant history. A coding assistant that helps you debug step by step mostly needs the last few exchanges. What you discussed 50 turns ago is rarely relevant to the current error message. The downside is abrupt information loss. If the user stated a critical constraint in turn 3 and you are now on turn 25 with a window of 10, that constraint is gone.
-4. *Summary memory** periodically compresses older turns into a condensed summary. You keep the recent turns in full and prepend a summary of everything that came before. When the history grows beyond a threshold, you ask the model to summarize the oldest unsummarized turns and replace them with that summary. The summary preserves the gist of earlier conversation while using far fewer tokens. This is more sophisticated than a sliding window because important information from early turns can survive in compressed form.
-5. *Entity memory** takes a structured approach. Instead of summarizing the conversation as prose, you extract and maintain a running record of entities mentioned, their attributes, and relationships. The user mentioned they work at Acme Corp on the billing team and their manager is Sarah. These facts get stored as structured entries and injected into the context as a factsheet, independent of the conversation turns. This works well when the conversation revolves around specific entities (people, projects, products) and you need to track evolving facts about them.
-6. *Hybrid approaches** combine multiple strategies. A common production setup uses summary memory for older turns, full history for the most recent turns, and entity memory for key facts. The summary provides general context. The recent turns provide conversational flow. The entity facts ensure critical details are not lost.
+2. *Full history** is the simplest approach. Include every message from the conversation in every request.
+3. *Sliding window** keeps only the most recent N turns. Older messages are dropped.
+4. *Summary memory** periodically compresses older turns into a condensed summary. You keep the recent turns in full and prepend a summary of everything that came before.
+5. *Entity memory** takes a structured approach. Instead of summarizing the conversation as prose, you extract and maintain a running record of entities mentioned, their attributes, and relationships.
+6. Adapt the code template below to your specific requirements
+7. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -75,10 +93,12 @@ print(memory.chat("What's my name?"))  # Should remember: "Alice"
 
 ## Verification Checklist
 
-- [ ] Verified: Summary compression loses information. The model decides what is "important" when generating the summary, and it does not always decide correctly. A detail that seemed minor at the time might become critical later. Once it is summarized away, it is gone. You can mitigate this by using conservative summarization prompts that err on the side of including more detail, but there is always a trade-off between compression ratio and information preservation.
-- [ ] Verified: Sliding windows create a jarring experience when users reference things from before the window. "Remember when I said I needed the blue version?" The model has no memory of that exchange and either confesses ignorance or, worse, confabulates an answer. If your application uses a sliding window, consider informing users about the memory horizon or providing a way to pin important messages.
-- [ ] Verified: Entity extraction is imperfect. The model may miss entities, extract incorrect attributes, or fail to update an entity when new information is provided. Entity memory requires validation and correction mechanisms to stay accurate over time.
-- [ ] Verified: Context window cost is often underestimated. If you are using summary memory with a 2,000-token summary plus the last 10 turns plus a system prompt, you might be using 5,000 tokens of context before the model generates a single token. At API pricing, that adds up across millions of conversations.
+- [ ] Verified: Summary compression loses information.
+- [ ] Verified: Sliding windows create a jarring experience when users reference things from before the window.
+- [ ] Verified: Entity extraction is imperfect.
+- [ ] Context window usage is managed — retrieved content fits within model limits
+- [ ] Implementation follows the Conversation Memory architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

@@ -1,26 +1,53 @@
+---
+name: react-loop
+description: >-
+  Implement the ReAct Loop pattern (Agents). Interleave reasoning and action in a loop where the agent thinks, acts, observes, and repeats until the task is complete. Use when working with: reasoning, acting, loop, observation.
+---
+
 # ReAct Loop
 
-> Category: Agents | Difficulty: intermediate | Pattern: genaipatterns.dev/patterns/agents/react-loop
+> Category: Agents | Difficulty: intermediate | Reference: https://www.genaipatterns.dev/patterns/agents/react-loop
 
 ## What This Pattern Solves
 
 **The ReAct (Reasoning + Acting) Loop is** a pattern that interleaves thinking and tool use in a cycle. The agent produces a Thought explaining its reasoning, takes an Action by calling a tool, receives an Observation with the result, and repeats until it has enough information to answer.
 
+## When to Use This Skill
+
+ReAct is a good default choice for any task that requires the model to gather information or interact with external systems before producing an answer.
+
+Use it when:
+
+- The answer depends on information the model does not have in its training data
+- The task requires combining information from multiple sources
+- You need an audit trail of the agent's reasoning and actions
+- The number of steps needed is not predictable in advance
+- The task is interactive, where the result of one action determines the next
+
+Skip it when:
+
+- The task can be answered purely from the model's existing knowledge
+- The workflow is completely deterministic and can be hard-coded as a pipeline
+- You need guaranteed completion within a fixed number of steps (ReAct loops can be unpredictable in length)
+- The task decomposes cleanly into a plan that should be created upfront
+
 ## Architecture Rules
 
-- The ReAct pattern formalizes this interleaving into a simple loop with three components. The agent produces a **Thought** explaining what it knows so far and what it needs to do next. It then takes an **Action**, typically a tool call like a web search, database query, or API request. It receives an **Observation**, which is the result of that action. Then it loops back to produce another Thought incorporating the new information.
-- This cycle repeats until the agent decides it has enough information to produce a final answer. The decision to stop is itself a reasoning step. The agent's Thought might say something like "I now have the revenue figures for all three companies and can compare them."
-- What makes this pattern effective is that each action is motivated by explicit reasoning. The agent does not call tools randomly. It articulates why it needs a particular piece of information before going to get it. This creates a traceable chain of logic that you can inspect when things go wrong.
-- A typical ReAct trace looks something like this. The user asks a question. The agent thinks about what information it needs. It searches for that information. It reads the result and realizes it needs one more data point. It searches again. It combines both results and produces an answer. Each step is grounded in the previous one.
-- The pattern is surprisingly general. It works for question answering over documents, for interacting with APIs, for navigating websites, for data analysis, and for many other tasks where the agent needs external information. This generality is probably why it has become the most widely adopted agentic pattern in practice.
+- ReAct is a good default choice for any task that requires the model to gather in
+- it when:
+- answer depends on information the model does not have in its training data
+- task requires combining information from multiple sources
+- You need an audit trail of the agent's reasoning and actions
 
 ## Implementation Steps
 
-1. The ReAct pattern formalizes this interleaving into a simple loop with three components. The agent produces a **Thought** explaining what it knows so far and what it needs to do next. It then takes an **Action**, typically a tool call like a web search, database query, or API request. It receives an **Observation**, which is the result of that action. Then it loops back to produce another Thought incorporating the new information.
-2. This cycle repeats until the agent decides it has enough information to produce a final answer. The decision to stop is itself a reasoning step. The agent's Thought might say something like "I now have the revenue figures for all three companies and can compare them."
-3. What makes this pattern effective is that each action is motivated by explicit reasoning. The agent does not call tools randomly. It articulates why it needs a particular piece of information before going to get it. This creates a traceable chain of logic that you can inspect when things go wrong.
-4. A typical ReAct trace looks something like this. The user asks a question. The agent thinks about what information it needs. It searches for that information. It reads the result and realizes it needs one more data point. It searches again. It combines both results and produces an answer. Each step is grounded in the previous one.
-5. The pattern is surprisingly general. It works for question answering over documents, for interacting with APIs, for navigating websites, for data analysis, and for many other tasks where the agent needs external information. This generality is probably why it has become the most widely adopted agentic pattern in practice.
+1. The ReAct pattern formalizes this interleaving into a simple loop with three components. The agent produces a **Thought** explaining what it knows so far and what it needs to do next.
+2. This cycle repeats until the agent decides it has enough information to produce a final answer. The decision to stop is itself a reasoning step.
+3. What makes this pattern effective is that each action is motivated by explicit reasoning. The agent does not call tools randomly.
+4. A typical ReAct trace looks something like this. The user asks a question.
+5. The pattern is surprisingly general. It works for question answering over documents, for interacting with APIs, for navigating websites, for data analysis, and for many other tasks where the agent needs external information.
+6. Adapt the code template below to your specific requirements
+7. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -82,11 +109,13 @@ print(react_loop("What is the population of France?"))
 
 ## Verification Checklist
 
-- [ ] Verified: *Loops that never terminate.** The agent keeps searching, finding somewhat relevant information, deciding it is not quite enough, and searching again. Without a maximum iteration limit, this can run indefinitely. Always set a cap on the number of reasoning-action cycles. Somewhere between 5 and 15 iterations is typical, depending on the task complexity.
-- [ ] Verified: *Reasoning that ignores observations.** Sometimes the agent's Thought does not actually incorporate the information from the previous Observation. It goes through the motions of the loop without genuinely reasoning about what it learned. This often manifests as the agent repeating similar searches or ignoring relevant data it already has. Better system prompts that explicitly instruct the agent to reference previous observations can help.
-- [ ] Verified: *Action selection that is too narrow.** The agent gets fixated on a single tool or approach. It keeps searching the web with slightly different queries when the answer might be in a database it also has access to. Providing clear descriptions of when to use each tool helps the agent choose more effectively.
-- [ ] Verified: *Observation overload.** A tool call might return a large amount of data, filling up the context window and pushing earlier reasoning out. The agent loses track of what it was doing and starts reasoning in circles. Truncating or summarizing long tool outputs before feeding them back to the agent keeps the context manageable.
-- [ ] Verified: *Reasoning overhead on simple tasks.** For straightforward questions that need a single tool call, the full Thought-Action-Observation cycle adds unnecessary latency and cost. If you know a task is simple, consider a direct tool call without the reasoning wrapper.
+- [ ] Maximum iteration limit is set to prevent infinite loops
+- [ ] Agent reasoning references previous observations (not ignoring tool results)
+- [ ] Verified: *Action selection that is too narrow.
+- [ ] Context window usage is managed — retrieved content fits within model limits
+- [ ] Latency impact is measured and within acceptable bounds
+- [ ] Implementation follows the ReAct Loop architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 

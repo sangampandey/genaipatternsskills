@@ -1,22 +1,38 @@
+---
+name: chain-of-thought
+description: >-
+  Implement the Chain-of-Thought pattern (Prompting). Prompt models to show their reasoning step by step to improve accuracy on multi-step problems like math, logic, and complex analysis. Use when working with: reasoning, step-by-step, zero-shot, few-shot.
+---
+
 # Chain-of-Thought
 
-> Category: Prompting | Difficulty: beginner | Pattern: genaipatterns.dev/patterns/prompting/chain-of-thought
+> Category: Prompting | Difficulty: beginner | Reference: https://www.genaipatterns.dev/patterns/prompting/chain-of-thought
 
 ## What This Pattern Solves
 
 **Chain-of-Thought (CoT) prompting is** a technique that improves LLM reasoning by instructing the model to show its work step by step before giving a final answer. By decomposing complex problems into intermediate reasoning steps, the model produces more accurate results on math, logic, and multi-step tasks.
 
+## When to Use This Skill
+
+Chain-of-Thought works best when the task has a clear sequence of logical steps. Math problems, multi-hop question answering, code analysis, and planning tasks are all good candidates. If you find yourself thinking "the model should be able to do this" but it keeps getting the answer wrong, that is a strong signal to try CoT.
+
+It is also useful when you need to audit the model's reasoning. A bare answer gives you nothing to debug. A step-by-step trace lets you see exactly where the logic went off track, which makes it far easier to fix your prompt or identify edge cases.
+
+You probably do not need CoT for simple factual retrieval, straightforward classification, or tasks where the model already performs well. Adding "think step by step" to a sentiment analysis prompt is unlikely to help and will just burn extra tokens.
+
 ## Architecture Rules
 
-- Chain-of-Thought prompting is deceptively simple. You ask the model to show its work. That is the entire technique at its most basic level. By generating intermediate reasoning steps before arriving at a final answer, the model allocates more computation to the problem and keeps track of partial results in its own output.
-- There are three main variants worth knowing about. The first is zero-shot Chain-of-Thought, where you append something like "Let us think step by step" to your prompt. No examples needed. This alone can dramatically improve accuracy on reasoning tasks because it shifts the model out of its default shortcut behavior. The second variant is few-shot Chain-of-Thought. Here you provide a handful of worked examples that demonstrate the step-by-step reasoning format you want. The model picks up on the pattern and applies it to new inputs. This tends to be more reliable than zero-shot because the model has a concrete template to follow. The third variant, sometimes called auto-CoT, involves building a database of verified reasoning traces and selecting relevant ones dynamically based on the input. This is more infrastructure work but scales well when you are handling diverse problem types.
-- The key insight is that you are not teaching the model new reasoning skills. You are unlocking capabilities it already has by changing the generation pattern. When the model writes out "First, I need to convert miles to kilometers" before doing the conversion, it is giving itself a working memory that persists across tokens. Each step constrains the next, reducing the chance of a wrong final answer.
+- Chain-of-Thought works best when the task has a clear sequence of logical steps
+- It is also useful when you need to audit the model's reasoning
+- You probably do not need CoT for simple factual retrieval, straightforward classification, or tas...
 
 ## Implementation Steps
 
-1. Chain-of-Thought prompting is deceptively simple. You ask the model to show its work. That is the entire technique at its most basic level. By generating intermediate reasoning steps before arriving at a final answer, the model allocates more computation to the problem and keeps track of partial results in its own output.
-2. There are three main variants worth knowing about. The first is zero-shot Chain-of-Thought, where you append something like "Let us think step by step" to your prompt. No examples needed. This alone can dramatically improve accuracy on reasoning tasks because it shifts the model out of its default shortcut behavior. The second variant is few-shot Chain-of-Thought. Here you provide a handful of worked examples that demonstrate the step-by-step reasoning format you want. The model picks up on the pattern and applies it to new inputs. This tends to be more reliable than zero-shot because the model has a concrete template to follow. The third variant, sometimes called auto-CoT, involves building a database of verified reasoning traces and selecting relevant ones dynamically based on the input. This is more infrastructure work but scales well when you are handling diverse problem types.
-3. The key insight is that you are not teaching the model new reasoning skills. You are unlocking capabilities it already has by changing the generation pattern. When the model writes out "First, I need to convert miles to kilometers" before doing the conversion, it is giving itself a working memory that persists across tokens. Each step constrains the next, reducing the chance of a wrong final answer.
+1. Chain-of-Thought prompting is deceptively simple. You ask the model to show its work.
+2. There are three main variants worth knowing about. The first is zero-shot Chain-of-Thought, where you append something like "Let us think step by step" to your prompt.
+3. The key insight is that you are not teaching the model new reasoning skills. You are unlocking capabilities it already has by changing the generation pattern.
+4. Adapt the code template below to your specific requirements
+5. Run the verification checklist before marking implementation complete
 
 ## Code Template
 
@@ -49,10 +65,12 @@ print(result)  # 19
 
 ## Verification Checklist
 
-- [ ] Verified: No most common failure mode is verbose but wrong reasoning. The model generates a plausible-looking chain of steps that contains a subtle error early on, and then the rest of the reasoning faithfully builds on that mistake. The step-by-step format can actually make this harder to catch because the output looks so thorough and confident.
-- [ ] Verified: Another issue is faithfulness. The reasoning the model writes out is not necessarily the reasoning it is actually using internally. Sometimes the model arrives at an answer through pattern matching and then constructs a post-hoc justification. The steps might look logical but they are a narrative, not a computation trace.
-- [ ] Verified: Over-reasoning is a real problem too. For simple tasks, forcing step-by-step output can lead the model down rabbit holes. It starts considering edge cases that do not apply, second-guessing itself, and eventually producing a worse answer than it would have with a direct response.
-- [ ] Verified: Finally, watch out for prompt sensitivity. Small changes in how you phrase the CoT instruction can lead to very different reasoning patterns. "Think step by step" and "Break this down into steps" and "Show your work" can all produce different quality outputs depending on the model.
+- [ ] Verified: most common failure mode is verbose but wrong reasoning.
+- [ ] Monitoring and logging are configured for production debugging
+- [ ] Verified: Over-reasoning is a real problem too.
+- [ ] Verified: Finally, watch out for prompt sensitivity.
+- [ ] Implementation follows the Chain-of-Thought architecture rules above
+- [ ] Code is tested with representative inputs
 
 ## Trade-offs
 
