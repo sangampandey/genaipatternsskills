@@ -1,0 +1,383 @@
+{
+  "version": "1.0.0",
+  "skills": [
+    {
+      "slug": "agentic-rag",
+      "title": "Agentic RAG",
+      "category": "rag",
+      "difficulty": "advanced",
+      "description": "Give an AI agent control over when, where, and how to retrieve information rather than using a fixed retrieval pipeline.",
+      "tags": [
+        "agents",
+        "adaptive-retrieval",
+        "multi-source",
+        "orchestration"
+      ]
+    },
+    {
+      "slug": "basic-rag",
+      "title": "Basic RAG",
+      "category": "rag",
+      "difficulty": "beginner",
+      "description": "Ground LLM responses in external knowledge by retrieving relevant documents before generation to reduce hallucinations and stay current.",
+      "tags": [
+        "retrieval",
+        "grounding",
+        "knowledge",
+        "context"
+      ]
+    },
+    {
+      "slug": "deep-search",
+      "title": "Deep Search",
+      "category": "rag",
+      "difficulty": "advanced",
+      "description": "Answer complex multi-hop questions through iterative cycles of retrieval, reasoning, and gap analysis across multiple sources.",
+      "tags": [
+        "multi-hop",
+        "iterative",
+        "research",
+        "deep-research"
+      ]
+    },
+    {
+      "slug": "grounded-generation",
+      "title": "Grounded Generation",
+      "category": "rag",
+      "difficulty": "advanced",
+      "description": "Build trust in RAG outputs through inline citations, out-of-domain detection, and self-correcting retrieval strategies that reduce hallucinations.",
+      "tags": [
+        "citations",
+        "hallucination",
+        "trust",
+        "crag",
+        "self-rag"
+      ]
+    },
+    {
+      "slug": "hybrid-retrieval",
+      "title": "Hybrid Retrieval",
+      "category": "rag",
+      "difficulty": "intermediate",
+      "description": "Bridge the vocabulary gap between user queries and knowledge base content using hypothetical answers, query expansion, and hybrid search.",
+      "tags": [
+        "retrieval",
+        "hyde",
+        "query-expansion",
+        "hybrid-search"
+      ]
+    },
+    {
+      "slug": "retrieval-refinement",
+      "title": "Retrieval Refinement",
+      "category": "rag",
+      "difficulty": "intermediate",
+      "description": "Improve retrieval quality by reranking, compressing, and filtering retrieved chunks between the vector search step and LLM generation.",
+      "tags": [
+        "reranking",
+        "compression",
+        "filtering",
+        "relevance"
+      ]
+    },
+    {
+      "slug": "semantic-indexing",
+      "title": "Semantic Indexing",
+      "category": "rag",
+      "difficulty": "intermediate",
+      "description": "Replace keyword matching with vector embeddings to find documents by meaning rather than exact words, enabling semantic similarity search.",
+      "tags": [
+        "embeddings",
+        "vectors",
+        "similarity",
+        "search"
+      ]
+    },
+    {
+      "slug": "code-execution",
+      "title": "Code Execution",
+      "category": "agents",
+      "difficulty": "intermediate",
+      "description": "Let LLMs generate and execute code in sandboxed environments for tasks requiring computational precision like data analysis and visualization.",
+      "tags": [
+        "sandbox",
+        "code-generation",
+        "sql",
+        "visualization"
+      ]
+    },
+    {
+      "slug": "multi-agent-collaboration",
+      "title": "Multi-Agent Collaboration",
+      "category": "agents",
+      "difficulty": "advanced",
+      "description": "Coordinate multiple specialized agents to solve complex tasks that exceed any single agent's capabilities using supervisor or peer topologies.",
+      "tags": [
+        "multi-agent",
+        "orchestration",
+        "supervisor",
+        "delegation"
+      ]
+    },
+    {
+      "slug": "plan-and-execute",
+      "title": "Plan and Execute",
+      "category": "agents",
+      "difficulty": "advanced",
+      "description": "Separate strategic planning from tactical execution by having one agent plan and another execute each step for more structured workflows.",
+      "tags": [
+        "planning",
+        "execution",
+        "structured",
+        "decomposition"
+      ]
+    },
+    {
+      "slug": "react-loop",
+      "title": "ReAct Loop",
+      "category": "agents",
+      "difficulty": "intermediate",
+      "description": "Interleave reasoning and action in a loop where the agent thinks, acts, observes, and repeats until the task is complete.",
+      "tags": [
+        "reasoning",
+        "acting",
+        "loop",
+        "observation"
+      ]
+    },
+    {
+      "slug": "tool-calling",
+      "title": "Tool Calling",
+      "category": "agents",
+      "difficulty": "intermediate",
+      "description": "Let LLMs interact with external systems by emitting structured function calls that your code executes safely on their behalf.",
+      "tags": [
+        "function-calling",
+        "tools",
+        "actions",
+        "api"
+      ]
+    },
+    {
+      "slug": "chain-of-thought",
+      "title": "Chain-of-Thought",
+      "category": "prompting",
+      "difficulty": "beginner",
+      "description": "Prompt models to show their reasoning step by step to improve accuracy on multi-step problems like math, logic, and complex analysis.",
+      "tags": [
+        "reasoning",
+        "step-by-step",
+        "zero-shot",
+        "few-shot"
+      ]
+    },
+    {
+      "slug": "few-shot-prompting",
+      "title": "Few-Shot Prompting",
+      "category": "prompting",
+      "difficulty": "beginner",
+      "description": "Include input-output examples in your prompt so the model learns the expected format, tone, and behavior by demonstration.",
+      "tags": [
+        "examples",
+        "in-context-learning",
+        "formatting",
+        "classification"
+      ]
+    },
+    {
+      "slug": "prompt-chaining",
+      "title": "Prompt Chaining",
+      "category": "prompting",
+      "difficulty": "intermediate",
+      "description": "Break complex tasks into a sequence of focused prompts where each step's output feeds into the next for more reliable multi-step results.",
+      "tags": [
+        "sequential",
+        "pipeline",
+        "decomposition",
+        "multi-step"
+      ]
+    },
+    {
+      "slug": "prompt-optimization",
+      "title": "Prompt Optimization",
+      "category": "prompting",
+      "difficulty": "advanced",
+      "description": "Automatically optimize prompts against evaluation datasets instead of relying on manual trial-and-error tuning of instructions.",
+      "tags": [
+        "dspy",
+        "optimization",
+        "automated",
+        "evaluation"
+      ]
+    },
+    {
+      "slug": "self-consistency",
+      "title": "Self-Consistency",
+      "category": "prompting",
+      "difficulty": "intermediate",
+      "description": "Generate multiple reasoning paths and take the majority answer to reduce errors from stochastic generation and improve reliability.",
+      "tags": [
+        "sampling",
+        "majority-vote",
+        "consistency",
+        "reliability"
+      ]
+    },
+    {
+      "slug": "cascading",
+      "title": "Cascading",
+      "category": "routing",
+      "difficulty": "intermediate",
+      "description": "Try cheaper models first and escalate to more capable ones only when confidence is low, reducing costs while maintaining output quality.",
+      "tags": [
+        "fallback",
+        "escalation",
+        "cost-optimization",
+        "confidence"
+      ]
+    },
+    {
+      "slug": "model-router",
+      "title": "Model Router",
+      "category": "routing",
+      "difficulty": "intermediate",
+      "description": "Route queries to the right model tier based on estimated complexity to optimize cost without sacrificing quality on harder tasks.",
+      "tags": [
+        "routing",
+        "cost-optimization",
+        "model-selection",
+        "classification"
+      ]
+    },
+    {
+      "slug": "semantic-router",
+      "title": "Semantic Router",
+      "category": "routing",
+      "difficulty": "intermediate",
+      "description": "Classify query intent using embeddings and route to the appropriate handler, tool, or agent pipeline without relying on keyword rules.",
+      "tags": [
+        "intent",
+        "embeddings",
+        "classification",
+        "dispatch"
+      ]
+    },
+    {
+      "slug": "guardrails",
+      "title": "Guardrails",
+      "category": "safety",
+      "difficulty": "intermediate",
+      "description": "Insert safety layers at input, output, retrieval, and execution points to enforce content policies, prevent harm, and block prompt injection.",
+      "tags": [
+        "safety",
+        "input-filtering",
+        "output-filtering",
+        "moderation"
+      ]
+    },
+    {
+      "slug": "self-check",
+      "title": "Self-Check",
+      "category": "safety",
+      "difficulty": "advanced",
+      "description": "Detect potential hallucinations by analyzing token probabilities and confidence scores in LLM outputs before they reach the user.",
+      "tags": [
+        "hallucination",
+        "logprobs",
+        "confidence",
+        "perplexity"
+      ]
+    },
+    {
+      "slug": "llm-as-judge",
+      "title": "LLM-as-Judge",
+      "category": "evaluation",
+      "difficulty": "intermediate",
+      "description": "Use an LLM with a custom scoring rubric to evaluate open-ended outputs at scale, replacing expensive human review with consistent automated grading.",
+      "tags": [
+        "evaluation",
+        "scoring",
+        "rubric",
+        "quality"
+      ]
+    },
+    {
+      "slug": "reflection",
+      "title": "Reflection",
+      "category": "evaluation",
+      "difficulty": "intermediate",
+      "description": "Improve LLM outputs through iterative generate-evaluate-critique-regenerate loops that refine quality without retraining the model.",
+      "tags": [
+        "critique",
+        "iteration",
+        "improvement",
+        "self-evaluation"
+      ]
+    },
+    {
+      "slug": "inference-optimization",
+      "title": "Inference Optimization",
+      "category": "cost-performance",
+      "difficulty": "advanced",
+      "description": "Maximize inference throughput through batching, KV cache optimization, and model parallelism to reduce latency and serve more requests per GPU.",
+      "tags": [
+        "batching",
+        "kv-cache",
+        "parallelism",
+        "throughput"
+      ]
+    },
+    {
+      "slug": "prompt-caching",
+      "title": "Prompt Caching",
+      "category": "cost-performance",
+      "difficulty": "intermediate",
+      "description": "Reuse responses for repeated or similar prompts through semantic and prefix caching strategies to cut latency and reduce API costs.",
+      "tags": [
+        "caching",
+        "latency",
+        "cost-reduction",
+        "semantic-cache"
+      ]
+    },
+    {
+      "slug": "small-language-models",
+      "title": "Small Language Models",
+      "category": "cost-performance",
+      "difficulty": "advanced",
+      "description": "Reduce model size through distillation, quantization, or speculative decoding while preserving quality for cost-efficient deployment.",
+      "tags": [
+        "distillation",
+        "quantization",
+        "speculative-decoding",
+        "efficiency"
+      ]
+    },
+    {
+      "slug": "conversation-memory",
+      "title": "Conversation Memory",
+      "category": "memory",
+      "difficulty": "beginner",
+      "description": "Manage conversation state across turns using sliding windows, summaries, or entity tracking strategies to maintain coherent multi-turn dialogue.",
+      "tags": [
+        "conversation",
+        "history",
+        "sliding-window",
+        "summarization"
+      ]
+    },
+    {
+      "slug": "long-term-memory",
+      "title": "Long-Term Memory",
+      "category": "memory",
+      "difficulty": "intermediate",
+      "description": "Persist important facts and preferences in external memory stores and retrieve them to maintain continuity and personalization across sessions.",
+      "tags": [
+        "persistence",
+        "retrieval",
+        "personalization",
+        "context"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+# Small Language Models
+
+> Category: Cost & Performance | Difficulty: advanced | Pattern: genaipatterns.dev/patterns/cost-performance/small-language-models
+
+## What This Pattern Solves
+
+**Small Language Models (SLMs) is** a pattern that uses compact, task-specific models (1B to 13B parameters) instead of large general-purpose models for targeted tasks. Fine-tuned SLMs can match or exceed large model performance on narrow domains at a fraction of the cost and latency.
+
+## Architecture Rules
+
+- **Distillation** is the most intuitive approach. You have a large "teacher" model that performs well on your task. You use it to generate a training dataset of high-quality outputs, then train a smaller "student" model on that dataset. The student does not need to learn everything the teacher knows. It only needs to learn the narrow slice of capability that your application requires.
+- A general-purpose 70B model knows how to write poetry, solve math problems, translate languages, and generate code. If your application is a customer service chatbot, the student model only needs to handle customer service. By narrowing the training distribution, a 7B model can match the teacher's performance on your specific use case even though it would fall apart on general benchmarks. The key to good distillation is curating the training data carefully. Generate examples that cover the full range of inputs your application will see. Include edge cases. Run the teacher at low temperature for consistency. The quality of your distillation dataset determines the ceiling of your student model.
+- **Quantization** takes a different approach. Instead of training a smaller model, you take the existing large model and reduce the precision of its numerical weights. Neural network weights are typically stored as 32-bit floating point numbers. Quantization converts them to 16-bit, 8-bit, or even 4-bit representations. A model quantized from FP32 to INT4 uses roughly one-eighth the memory, which means it can run on cheaper hardware or fit on a single GPU that previously could not hold it.
+- The surprising finding is that this precision reduction barely affects output quality for most tasks. Models are over-parameterized. There is redundancy in those billions of weights, and quantization compresses that redundancy. At 8-bit quantization, quality loss is typically imperceptible. At 4-bit, there is measurable degradation, but it is often small enough to be acceptable, especially for less demanding tasks. Modern quantization techniques like GPTQ and AWQ are aware of which weights matter most and preserve precision where it counts.
+- **Speculative decoding** is the most clever of the three. It does not compromise on quality at all. Instead, it uses a small "draft" model to propose candidate tokens quickly, then has the large model verify those proposals in a single forward pass. Verification is faster than generation because the large model can check multiple tokens in parallel. When the draft model guesses correctly (which happens frequently for common patterns), you get the speed of the small model with the guaranteed quality of the large one. When the draft model guesses wrong, the large model corrects it with minimal overhead.
+
+## Implementation Steps
+
+1. *Distillation** is the most intuitive approach. You have a large "teacher" model that performs well on your task. You use it to generate a training dataset of high-quality outputs, then train a smaller "student" model on that dataset. The student does not need to learn everything the teacher knows. It only needs to learn the narrow slice of capability that your application requires.
+2. A general-purpose 70B model knows how to write poetry, solve math problems, translate languages, and generate code. If your application is a customer service chatbot, the student model only needs to handle customer service. By narrowing the training distribution, a 7B model can match the teacher's performance on your specific use case even though it would fall apart on general benchmarks. The key to good distillation is curating the training data carefully. Generate examples that cover the full range of inputs your application will see. Include edge cases. Run the teacher at low temperature for consistency. The quality of your distillation dataset determines the ceiling of your student model.
+3. *Quantization** takes a different approach. Instead of training a smaller model, you take the existing large model and reduce the precision of its numerical weights. Neural network weights are typically stored as 32-bit floating point numbers. Quantization converts them to 16-bit, 8-bit, or even 4-bit representations. A model quantized from FP32 to INT4 uses roughly one-eighth the memory, which means it can run on cheaper hardware or fit on a single GPU that previously could not hold it.
+4. The surprising finding is that this precision reduction barely affects output quality for most tasks. Models are over-parameterized. There is redundancy in those billions of weights, and quantization compresses that redundancy. At 8-bit quantization, quality loss is typically imperceptible. At 4-bit, there is measurable degradation, but it is often small enough to be acceptable, especially for less demanding tasks. Modern quantization techniques like GPTQ and AWQ are aware of which weights matter most and preserve precision where it counts.
+5. *Speculative decoding** is the most clever of the three. It does not compromise on quality at all. Instead, it uses a small "draft" model to propose candidate tokens quickly, then has the large model verify those proposals in a single forward pass. Verification is faster than generation because the large model can check multiple tokens in parallel. When the draft model guesses correctly (which happens frequently for common patterns), you get the speed of the small model with the guaranteed quality of the large one. When the draft model guesses wrong, the large model corrects it with minimal overhead.
+
+## Code Template
+
+See the full pattern page for code examples: genaipatterns.dev/patterns/cost-performance/small-language-models
+
+## Verification Checklist
+
+- [ ] Verified: Distilled models are brittle outside their training distribution. If user behavior shifts or you add new product categories or your application scope expands, the student model may fail on inputs the teacher never generated examples for. You need a monitoring pipeline that detects distribution drift and triggers re-distillation.
+- [ ] Verified: Quantization has a quality floor. At aggressive compression levels (3-bit or 2-bit), output quality degrades noticeably, especially for tasks requiring precise reasoning or factual recall. Always benchmark quantized models on your specific task rather than trusting general-purpose benchmarks. A model that scores well on an academic benchmark may still fail on your domain-specific evaluation.
+- [ ] Verified: Speculative decoding adds system complexity. You are now managing two models, their alignment, and the verification logic. If the draft model's vocabulary or tokenizer differs from the large model, integration becomes more involved. The speedup also depends on the acceptance rate. For tasks where the large model would produce unusual or creative outputs, the draft model's guesses will be wrong more often, reducing the benefit.
+- [ ] Verified: All three approaches require evaluation infrastructure. You need automated benchmarks for your specific use case to know whether the optimized model is good enough. "Good enough" is a product decision, not a technical one, and it requires continuous measurement.
+
+## Trade-offs
+
+Distillation requires the largest upfront investment but delivers the largest ongoing savings. You need to generate training data, train the model, evaluate it, and maintain a retraining pipeline. The operational complexity is real. But once deployed, a 7B distilled model is dramatically cheaper than a 70B API call.
+
+Quantization is nearly free to apply but provides moderate savings. You reduce memory requirements, which may let you use cheaper hardware or increase throughput on existing hardware. The quality trade-off is small but present, and it accumulates. A slightly worse model producing slightly worse outputs across millions of requests has a cumulative impact on user experience.
+
+Speculative decoding improves speed without sacrificing quality but does not reduce cost in terms of total compute. You are running two models instead of one. The benefit is latency, not efficiency. For applications where speed matters more than cost per request, this is the right trade-off.
+

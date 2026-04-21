@@ -1,0 +1,38 @@
+{
+  "name": "genai-skills",
+  "version": "1.0.0",
+  "description": "Install GenAI design pattern skills into AI coding assistants",
+  "type": "module",
+  "bin": {
+    "genai-skills": "bin/cli.mjs"
+  },
+  "files": [
+    "bin/",
+    "skills/",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "genai",
+    "llm",
+    "patterns",
+    "skills",
+    "claude-code",
+    "cursor",
+    "codex",
+    "gemini",
+    "rag",
+    "agents",
+    "prompting"
+  ],
+  "author": "Sangam Pandey",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/genaipatterns/skills"
+  },
+  "homepage": "https://www.genaipatterns.dev/skills",
+  "engines": {
+    "node": ">=18"
+  }
+}
