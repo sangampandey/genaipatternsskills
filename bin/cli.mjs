@@ -25,12 +25,12 @@ function detectTool() {
 }
 
 function getInstallPath(tool, slug) {
+  const home = process.env.HOME || process.env.USERPROFILE || "~";
   switch (tool) {
     case "claude": {
-      const home = process.env.HOME || process.env.USERPROFILE || "~";
-      const dir = path.join(home, ".claude", "commands");
+      const dir = path.join(home, ".claude", "skills", `genai-${slug}`);
       fs.mkdirSync(dir, { recursive: true });
-      return path.join(dir, `genai-${slug}.md`);
+      return path.join(dir, "SKILL.md");
     }
     case "cursor": {
       const dir = path.join(process.cwd(), ".cursor", "rules");
@@ -47,7 +47,7 @@ function getInstallPath(tool, slug) {
 }
 
 function installSkill(slug, tool) {
-  const skillPath = path.join(SKILLS_DIR, `${slug}.md`);
+  const skillPath = path.join(SKILLS_DIR, slug, "SKILL.md");
   if (!fs.existsSync(skillPath)) {
     console.error(`  Error: skill "${slug}" not found`);
     return false;
@@ -92,6 +92,14 @@ function removeSkill(slug, tool) {
     );
     fs.writeFileSync(destPath, content.replace(regex, ""));
     return true;
+  } else if (tool === "claude") {
+    const home = process.env.HOME || process.env.USERPROFILE || "~";
+    const skillDir = path.join(home, ".claude", "skills", `genai-${slug}`);
+    if (fs.existsSync(skillDir)) {
+      fs.rmSync(skillDir, { recursive: true });
+      return true;
+    }
+    return false;
   } else {
     const destPath = getInstallPath(tool, slug);
     if (fs.existsSync(destPath)) {
