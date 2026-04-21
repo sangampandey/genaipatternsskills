@@ -38,6 +38,14 @@ Each skill follows the [Anthropic Agent Skills spec](https://www.genaipatterns.d
 
 ## Quick Start
 
+**Official Skills CLI** (recommended — installs to all detected agents):
+
+```bash
+npx skills add sangampandey/genaipatternsskills
+```
+
+**Or with our CLI** (single-tool targeting, category filtering):
+
 ```bash
 npx genai-skills add --all
 ```
@@ -48,14 +56,15 @@ That's it. Your AI assistant now knows 29 production patterns. Try asking it:
 
 ## Supported Tools
 
-| Tool | Install Command | Auto-detected |
-|------|----------------|:---:|
-| **Claude Code** | `npx genai-skills add --all` | Yes |
-| **Cursor** | `npx genai-skills add --all --tool cursor` | Yes |
-| **Codex** | `npx genai-skills add --all --tool codex` | Yes |
-| **Gemini CLI** | `npx genai-skills add --all --tool gemini` | Yes |
+| Tool | Official CLI | genai-skills CLI |
+|------|:---:|:---:|
+| **Claude Code** | `npx skills add sangampandey/genaipatternsskills` | `npx genai-skills add --all` |
+| **Cursor** | Same command (auto-detected) | `npx genai-skills add --all --tool cursor` |
+| **Codex** | Same command (auto-detected) | `npx genai-skills add --all --tool codex` |
+| **Gemini CLI** | Same command (auto-detected) | `npx genai-skills add --all --tool gemini` |
+| **Windsurf, Augment, Cline, Roo Code, +30 more** | Same command (auto-detected) | — |
 
-The CLI auto-detects your tool from project config files. Use `--tool` to override.
+The official CLI auto-detects all installed agents. Our CLI auto-detects from project config files.
 
 ## Commands
 
